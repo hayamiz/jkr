@@ -1,3 +1,53 @@
 #!/usr/bin/env ruby
 
-abort "you need to write me"
+require 'optparse'
+require 'jkr'
+
+def parse_args(argv)
+  opt = Hash.new
+  parser = OptionParser.new
+
+  opt[:directory] = Dir.pwd
+  parser.on('-C', '--directory DIR',
+            "Change to directory DIR before reading jkr config files."
+            ) do |directory|
+    opt[:directory] = directory
+  end
+
+  parser.parse!(argv)
+  opt
+end
+
+def check_jkr_dir(dir_path)
+  def error_on_nodir(dir_path)
+    unless Dir.exists?(dir_path)
+      raise RuntimeError.new("#{dir_path} doesn't exist!")
+    end
+  end
+  
+  [dir_path, ["plan", "result"].map{|dirname| File.join(dir_path, "jkr", dirname)}
+  ].flatten.each do |dir_path|
+    error_on_nodir(dir_path)
+  end
+end
+
+def main(argv)
+  opt = parse_args(argv)
+  
+  check_jkr_dir(opt[:directory])
+  jkr_plan_dir = File.join(opt[:directory], "jkr", "plan")
+  jkr_result_dir = File.join(opt[:directory], "jkr", "plan")
+
+  Dir.glob("#{jkr_plan_dir}/*.plan").each do |plan_file_path|
+    plans = Jkr::Planner.load_plan(plan_file_path)
+    executor = Jkr::Executor.new
+    plans.each do |plan|
+      executor.run(plan)
+    end
+  end
+end
+
+if __FILE__ == $0
+  main(ARGV.dup)
+end
+
