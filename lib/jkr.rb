@@ -15,6 +15,10 @@ class Jkr
       @params = params
       @options = options
       @proc = proc
+
+      def @params.method_missing(name, *args)
+        self[name.to_sym]
+      end
     end
   end
 
@@ -36,30 +40,21 @@ class Jkr
       @vars = []
       @params = {}
       @options = {}
+      @execution = nil
 
       @delayed_param_queue = []
     end
 
-    def self.load(plan_file_path)
-      plan = self.new
+    def self.load_plan(plan_file_path)
+      planner = self.new
       plan_src = File.open(plan_file_path, "r").read
-      plan.instance_eval(plan_src)
-      
-      plan
+      planner.instance_eval(plan_src, plan_file_path, 0)
+      # load(plan_file_path)
+          
+      planner.generate_plans
     end
     
-    ## Functions for describing plans in '.plan' files below
-    def title(plan_title)
-      @title = plan_title.to_s
-    end
-    
-    def description(plan_desc)
-      @desc = plan_desc.to_s
-    end
-    
-    def def_experiment_plan
-      yield(self)
-
+    def generate_plans
       params_set = [@params]
       var_names = []
       @vars.each do |var|
@@ -74,10 +69,27 @@ class Jkr
           end
         }.flatten
       end
-
+      
       params_set.map do |params|
-        ExperimentPlan.new(@title, @desc, params, var_names)
+        ExperimentPlan.new(@title, @desc, params, var_names, @execution, @options)
       end
+    end
+
+    ## Functions for describing plans in '.plan' files below
+    def title(plan_title)
+      @title = plan_title.to_s
+    end
+    
+    def description(plan_desc)
+      @desc = plan_desc.to_s
+    end
+    
+    def def_experiment_plan(&proc)
+      proc.call(self)
+    end
+
+    def def_execution(&proc)
+      @execution = proc
     end
 
     def param(arg)
