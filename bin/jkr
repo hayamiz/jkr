@@ -30,6 +30,7 @@ class JkrCmd
 Usage: #{$0} [#{ul('command')} [#{ul('options')}]]
 
 Available commands: #{self.jkr_commands.join(', ')}
+
 '#{$0} help #{ul('command')}' shows detailed usage of #{ul('command')}
 
 EOS
@@ -57,7 +58,7 @@ EOS
   def initialize()
     @options = Hash.new
     self.setup_optparser()
-    @jkr_env = Jkr::JkrEnv.new(@options[:directory], @options[:jkr_directory])
+    @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
   end
 
   def dispatch(argv)
@@ -80,13 +81,9 @@ EOS
   ## Command definitions
 
   def run_cmd(argv)
-    plan_file_path = nil
-    @jkr_env.plans.each do |plan|
-      plan = Jkr::JkrPlan.new(@jkr_env, plan_file_path)
-      puts plan.title
-      puts plan.desc
-      p plan.params
-      p plan.vars
+    @jkr_env.plans.each do |plan_file_path|
+      plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+      Jkr::Trial.run(@jkr_env, plan)
     end
   end
   def run_cmd_help()
@@ -150,6 +147,8 @@ EOSS
         help = self.send("#{command}_cmd_help")
         printf "  %#{max_len}s : #{help[:summary]}\n", command
       end
+    else
+      puts @optparser.help
     end
   end
   def help_cmd_help()

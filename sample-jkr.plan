@@ -7,7 +7,7 @@ TPCC_DIR = "./tpcc-impl"
 title "Default TPC-C experiment plan"
 description "This is a default TPC-C experiment plan specification file."
 
-def_parameters do |p|
+def_parameters do
   # the number of warehouses: scale factor of TPC-C
   variable :num_warehouse => [100, 500]
   
