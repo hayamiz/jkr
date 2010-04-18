@@ -5,83 +5,79 @@ RESULT_DIR = "./result"
 TPCC_DIR = "./tpcc-impl"
 
 title "Default TPC-C experiment plan"
-description <<EOS
-This is a default TPC-C experiment plan specification file.
-EOS
+description "This is a default TPC-C experiment plan specification file."
 
-discard_on_finish
-
-def_experiment_plan do |p|
+def_parameters do |p|
   # the number of warehouses: scale factor of TPC-C
-  p.variable :num_warehouse => [100, 500]
+  variable :num_warehouse => [100, 500]
   
   # the number of threads
-  p.variable :num_threads => 1..10
+  variable :num_threads => 1..10
 
   # think-time throttling: 0.0 means no wait, 1.0 means spec-compliant wait
-  # p.param :tt_throttle => 1.0
-  p.param :tt_throttle => 0.0
+  # parameter :tt_throttle => 1.0
+  parameter :tt_throttle => 0.0
 
   # benchmark duration in second
-  p.param :duration => 3600 * 4
+  parameter :duration => 3600 * 4
 
   # interval of monitoring TPC-C performance metrics in second
   # metrics: MQTh, commit/abort rate, ...
-  p.param :perf_monitor_interval => 60
+  parameter :perf_monitor_interval => 60
   
   # interval of monitoring system state in second
   # metrics: disk io, cpu usage, ...
-  p.param :sys_monitor_interval => 1
+  parameter :sys_monitor_interval => 1
 
   # population
-  p.param :do_population => true
-  p.param :population_parallelism => 20
+  parameter :do_population => true
+  parameter :population_parallelism => 20
 
   # ACID property test
-  p.param :do_atomicity_test => false
-  p.param :do_consistency_test => false
+  parameter :do_atomicity_test => false
+  parameter :do_consistency_test => false
 
   ## debug flags
-  p.param :duplicated_population => false
-  p.param :verbose => false
+  parameter :duplicated_population => false
+  parameter :verbose => false
 
   ## mysql config
-  p.param :my_datadir => "/home/haya/tsujido/usr/var/mysqld"
-  p.param :my_sock => "/home/haya/tsujido/var/run/mysqld/mysql.sock"
-  p.param :my_username => "root"
-  p.param :my_password => ""
-  p.param :my_database => "TPCC"
-  p.param :my_port => "12345"
+  parameter :my_datadir => "/home/haya/tsujido/usr/var/mysqld"
+  parameter :my_sock => "/home/haya/tsujido/var/run/mysqld/mysql.sock"
+  parameter :my_username => "root"
+  parameter :my_password => ""
+  parameter :my_database => "TPCC"
+  parameter :my_port => "12345"
   
   # IOPS monitored device list
-  p.param :io_devices => ["sdc"]
+  parameter :io_devices => ["sdc"]
 
   ## InnoDB(mysql) config
-  p.param :use_raw_device => true
-  if p.param(:use_raw_device)
-    p.param :innodb_data_home_dir => ""
-    p.param :innodb_data_file_path => "/dev/sdc:1000Graw"
+  parameter :use_raw_device => true
+  if parameter[:use_raw_device] # parameter(:use_raw_device)
+    parameter :innodb_data_home_dir => ""
+    parameter :innodb_data_file_path => "/dev/sdc:1000Graw"
   else
-    p.param :innodb_data_home_dir => File.join(p.param(:my_datadir), "innodb-data")
-    p.param :innodb_data_file_path => "ibdata1:1000G"
+    parameter :innodb_data_home_dir => File.join(parameter(:my_datadir), "innodb-data")
+    parameter :innodb_data_file_path => "ibdata1:1000G"
   end
 
-  p.param :innodb_log_group_home_dir => p.param(:innodb_data_home_dir)
+  parameter :innodb_log_group_home_dir => parameter(:innodb_data_home_dir)
 
-  p.param :innodb_buffer_pool_size => "20G"
-  p.param :innodb_additional_mem_pool_size => "1G"
+  parameter :innodb_buffer_pool_size => "20G"
+  parameter :innodb_additional_mem_pool_size => "1G"
 
-  p.param :innodb_log_file_size => "1G"
-  p.param :innodb_log_buffer_size => "256M"
-  p.param :innodb_lock_wait_timeout => "50"
-  p.param :innodb_flush_log_at_trx_commit => "1"
-  p.param :innodb_flush_method => "O_DIRECT"
+  parameter :innodb_log_file_size => "1G"
+  parameter :innodb_log_buffer_size => "256M"
+  parameter :innodb_lock_wait_timeout => "50"
+  parameter :innodb_flush_log_at_trx_commit => "1"
+  parameter :innodb_flush_method => "O_DIRECT"
   
   ## slow query log
-  p.param :slow_query_log => false
-  p.param :slow_query_log_file => File.join(TMP_DIR, "slow-query.log")
+  parameter :slow_query_log => false
+  parameter :slow_query_log_file => File.join(TMP_DIR, "slow-query.log")
 end
 
-def_execution do |params|
+def_routine do |params|
   puts "hello world, #{params.num_warehouse}, #{params.num_threads}"
 end

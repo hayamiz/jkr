@@ -1,50 +1,168 @@
 #!/usr/bin/env ruby
 
+require 'fileutils'
 require 'optparse'
 require 'jkr'
 
-def parse_args(argv)
-  opt = Hash.new
-  parser = OptionParser.new
-
-  opt[:directory] = Dir.pwd
-  parser.on('-C', '--directory DIR',
-            "Change to directory DIR before reading jkr config files."
-            ) do |directory|
-    opt[:directory] = directory
-  end
-
-  parser.parse!(argv)
-  opt
+def ul(str)
+  "\033[4m#{str}\033[24m"
 end
 
-def check_jkr_dir(dir_path)
-  def error_on_nodir(dir_path)
-    unless Dir.exists?(dir_path)
-      raise RuntimeError.new("#{dir_path} doesn't exist!")
+def identity
+
+end
+
+class JkrCmd
+  def jkr_commands()
+    self.methods.map{|method_sym|
+      if method_sym.to_s =~ /^([a-z_-]+)_cmd$/
+        $~[1]
+      else
+        nil
+      end
+    }.compact
+  end
+
+  def setup_optparser()
+    @optparser = OptionParser.new
+
+    @optparser.banner = <<EOS
+Usage: #{$0} [#{ul('command')} [#{ul('options')}]]
+
+Available commands: #{self.jkr_commands.join(', ')}
+'#{$0} help #{ul('command')}' shows detailed usage of #{ul('command')}
+
+EOS
+
+    @options[:directory] = Dir.pwd
+    @optparser.on('-C', '--directory DIR',
+               "Change to directory DIR before reading jkr config files."
+               ) do |directory|
+      @options[:directory] = directory
+    end
+
+    @options[:jkr_directory] = File.join(@options[:directory], "jkr")
+    @optparser.on('-f', '--jkr-directory DIR',
+                  "Jkr specification file."
+                  ) do |jkr_directory|
+      @options[:jkr_directory] = jkr_directory
     end
   end
-  
-  [dir_path, ["plan", "result"].map{|dirname| File.join(dir_path, "jkr", dirname)}
-  ].flatten.each do |dir_path|
-    error_on_nodir(dir_path)
+
+  def parse_args(argv)
+    @optparser.parse!(argv)
+    @options
   end
+
+  def initialize()
+    @options = Hash.new
+    self.setup_optparser()
+    @jkr_env = Jkr::JkrEnv.new(@options[:directory], @options[:jkr_directory])
+  end
+
+  def dispatch(argv)
+    self.parse_args(argv) # argv updated destructively
+    
+    if argv.empty?
+      argv = ["run"]
+    end
+    command = argv.shift
+    unless self.jkr_commands.include?(command)
+      $stderr.puts "No such command: #{command}"
+      puts
+      puts @optparser.help
+      exit 1
+    end
+
+    self.send("#{command}_cmd", argv)
+  end
+
+  ## Command definitions
+
+  def run_cmd(argv)
+    plan_file_path = nil
+    @jkr_env.plans.each do |plan|
+      plan = Jkr::JkrPlan.new(@jkr_env, plan_file_path)
+      puts plan.title
+      puts plan.desc
+      p plan.params
+      p plan.vars
+    end
+  end
+  def run_cmd_help()
+    {
+      :summary => "run experiments",
+      :desc => ""
+    }
+  end
+
+  def install_cmd(argv)
+    jkr_dir = File.join(@options[:directory], "jkr")
+    result_dir = File.join(@options[:directory], "jkr", "result")
+    plan_dir = File.join(@options[:directory], "jkr", "plan")
+    [jkr_dir, result_dir, plan_dir].each{|dir| FileUtils.mkdir(dir) }
+    File.open(File.join(plan_dir, "sample.plan"), "w") do |file|
+      file.puts <<EOSS
+# -*- mode: ruby -*-
+
+title "Sample experiment plan"
+description <<EOS
+This is a sample experiment plan specification file.
+EOS
+
+# Discard this file after the experiments conducted.
+discard_on_finish
+
+def_experiment_plan do |p|
+  # 'p.variable' for variables
+  # 'p.param' for static parameters
+  
+  p.variable :num_xxx => 1..10
+  p.param :use_yyy => false
+
+  if p.param[:use_yyy]
+    p.param[:yyy_zzz] = "foo"
+  else
+    p.param[:yyy_zzz] = "bar"
+  end
+end
+
+def_execution do |params|
+  puts "hello world, #\{params.num_xxx\}, #\{params[:num_xxx]\}"
+end
+EOSS
+    end
+  end
+  def install_cmd_help()
+    {
+      :summary => "install jkr skelton setting files",
+      :desc => ""
+    }
+  end
+
+  def help_cmd(argv)
+    case argv[0]
+    when /^commands/
+      commands = self.jkr_commands
+      puts "Available commands:"
+      max_len = commands.map(&:size).max
+      commands.each do |command|
+        help = self.send("#{command}_cmd_help")
+        printf "  %#{max_len}s : #{help[:summary]}\n", command
+      end
+    end
+  end
+  def help_cmd_help()
+    {
+      :summary => "show helps",
+      :desc => ""
+    }
+  end
+
 end
 
 def main(argv)
-  opt = parse_args(argv)
-  
-  check_jkr_dir(opt[:directory])
-  jkr_plan_dir = File.join(opt[:directory], "jkr", "plan")
-  jkr_result_dir = File.join(opt[:directory], "jkr", "plan")
-
-  Dir.glob("#{jkr_plan_dir}/*.plan").each do |plan_file_path|
-    plans = Jkr::Planner.load_plan(plan_file_path)
-    executor = Jkr::Executor.new
-    plans.each do |plan|
-      executor.run(plan)
-    end
-  end
+  JkrCmd.new.dispatch(argv)
 end
 
 if __FILE__ == $0

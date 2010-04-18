@@ -1,124 +1,133 @@
 
+require 'jkr/plan-utils'
+
 class Jkr
   VERSION = '0.0.1'
 
-  class ExperimentPlan
-    attr_reader :params
-    attr_reader :title
-    attr_reader :desc
-    attr_reader :options
-    attr_reader :proc
+  class JkrEnv
+    attr_reader :jkr_dir
+    attr_reader :working_dir
+    
+    PLAN_DIR = "plan"
+    RESULT_DIR = "result"
 
-    def initialize(title, desc, params, var_names, proc, options = {})
-      @title = title
-      @desc = desc
-      @params = params
-      @options = options
-      @proc = proc
-
-      def @params.method_missing(name, *args)
-        self[name.to_sym]
+    def initialize(working_dir = Dir.pwd, jkr_dir = File.join(Dir.pwd, "jkr"))
+      @jkr_dir = jkr_dir
+      @working_dir = working_dir
+      @jkr_plan_dir = File.join(@jkr_dir, PLAN_DIR)
+      @jkr_result_dir = File.join(@jkr_dir, RESULT_DIR)
+      
+      [@jkr_dir, @jkr_result_dir, @jkr_plan_dir].each do |dir_path|
+        unless Dir.exists?(dir_path)
+          raise RuntimeError.new("#{dir_path} doesn't exist!")
+        end
       end
     end
-  end
 
-  class Executor
-    def initialize
-      @hooks = {}
+    def next_plan
+      self.plans.first
     end
 
-    def run(plan)
-      plan.proc.call(plan.params)
+    def plans
+      Dir.glob("#{@jkr_plan_dir}#{File::SEPARATOR}*.plan").sort
     end
   end
 
-  class Planner
-    def initialize()
-      @title = "no title"
-      @desc = "no description"
-
-      @vars = []
-      @params = {}
-      @options = {}
-      @execution = nil
-
-      @delayed_param_queue = []
-    end
-
-    def self.load_plan(plan_file_path)
-      planner = self.new
-      plan_src = File.open(plan_file_path, "r").read
-      planner.instance_eval(plan_src, plan_file_path, 0)
-      # load(plan_file_path)
-          
-      planner.generate_plans
-    end
+  class JkrPlan
+    attr_accessor :title
+    attr_accessor :desc
     
-    def generate_plans
-      params_set = [@params]
-      var_names = []
-      @vars.each do |var|
-        var_name = var[0]
-        var_vals = var[1]
-        var_names.push(var_name)
-        params_set = params_set.map{|params|
-          var_vals.map do |var_val|
-            params = params.dup
-            params[var_name] = var_val
-            params
-          end
-        }.flatten
+    attr_accessor :params
+    attr_accessor :vars
+    attr_accessor :routine
+
+    attr_reader :file_path
+
+    def initialize(jkr_env, plan_file_path = nil)
+      @jkr_env = jkr_env
+      @file_path = plan_file_path || jkr_env.next_plan
+      return nil unless @file_path
+
+      @title = "no title"
+      @desc = "no desc"
+
+      @params = {}
+      @vars = {}
+      @routine = lambda do |_|
+        raise NotImplementedError.new("A routine of experiment '#{@title}' is not implemented")
+      end
+
+      PlanLoader.load_plan(self)
+    end
+
+
+    class PlanLoader
+      class PlanParams
+        attr_reader :vars
+        attr_reader :params
+
+        def initialize()
+          @vars = {}
+          @params = {}
+        end
+        
+        def [](key)
+          @params[key]
+        end
+
+        def []=(key, val)
+          @params[key] = val
+        end
       end
       
-      params_set.map do |params|
-        ExperimentPlan.new(@title, @desc, params, var_names, @execution, @options)
+      def initialize(plan)
+        @plan = plan
+        @params = nil
       end
-    end
-
-    ## Functions for describing plans in '.plan' files below
-    def title(plan_title)
-      @title = plan_title.to_s
-    end
-    
-    def description(plan_desc)
-      @desc = plan_desc.to_s
-    end
-    
-    def def_experiment_plan(&proc)
-      proc.call(self)
-    end
-
-    def def_execution(&proc)
-      @execution = proc
-    end
-
-    def param(arg)
-      if arg.is_a? Hash
-        # set param
-        @params.merge!(arg)
-      elsif arg.is_a? Symbol
-        @params[arg]
-      else
-        raise ArgumentError.new("Jkr::Planner#param takes Hash or Symbol only.")
+      
+      def self.load_plan(plan)
+        plan_loader = self.new(plan)
+        plan_src = File.open(plan.file_path, "r").read
+        plan_loader.instance_eval(plan_src, plan.file_path, 0)
+        plan
       end
-    end
-
-    def variable(arg)
-      if arg.is_a? Hash
-        arg.each do |key, val|
-          @vars.push([key, val])
+      
+      ## Functions for describing plans in '.plan' files below
+      def title(plan_title)
+        @plan.title = plan_title.to_s
+      end
+      
+      def description(plan_desc)
+        @plan.desc = plan_desc.to_s
+      end
+      
+      def def_parameters(&proc)
+        @params = PlanParams.new
+        proc.call(self)
+        @plan.params.merge!(@params.params)
+        @plan.vars.merge!(@params.vars)
+      end
+      
+      def def_routine(&proc)
+        @routine = proc
+      end
+      
+      def parameter(arg = nil)
+        if arg.is_a? Hash
+          # set param
+          @params.params.merge!(arg)
+        else
+          @params
         end
-      else
-        raise ArgumentError.new("Jkr::Planner#param takes Hash or Symbol only.")
       end
-    end
 
-    def set_option(arg)
-      @options.merge!(arg)
-    end
-
-    def discard_on_finish()
-      self.set_option :discard_on_finish => true
+      def variable(arg = nil)
+        if arg.is_a? Hash
+          @params.vars.merge!(arg)
+        else
+          @params
+        end
+      end
     end
   end
 end
