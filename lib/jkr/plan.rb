@@ -1,4 +1,6 @@
 
+require 'jkr/utils'
+
 class Jkr
   class Plan
     attr_accessor :title
@@ -6,7 +8,11 @@ class Jkr
     
     attr_accessor :params
     attr_accessor :vars
+    
+    attr_accessor :prep
+    attr_accessor :cleanup
     attr_accessor :routine
+    
 
     attr_accessor :src
 
@@ -24,6 +30,12 @@ class Jkr
       @vars = {}
       @routine = lambda do |_|
         raise NotImplementedError.new("A routine of experiment '#{@title}' is not implemented")
+      end
+      @prep = lambda do |_|
+        raise NotImplementedError.new("A prep of experiment '#{@title}' is not implemented")
+      end
+      @cleanup = lambda do |_|
+        raise NotImplementedError.new("A cleanup of experiment '#{@title}' is not implemented")
       end
 
       @src = nil
@@ -51,6 +63,8 @@ class Jkr
         end
       end
       
+      include Jkr::PlanUtils
+
       def initialize(plan)
         @plan = plan
         @params = nil
@@ -64,6 +78,10 @@ class Jkr
       end
       
       ## Functions for describing plans in '.plan' files below
+      def plan
+        @plan
+      end
+
       def title(plan_title)
         @plan.title = plan_title.to_s
       end
@@ -82,7 +100,13 @@ class Jkr
       def def_routine(&proc)
         @plan.routine = proc
       end
-      
+      def def_prep(&proc)
+        @plan.prep = proc
+      end
+      def def_cleanup(&proc)
+        @plan.cleanup = proc
+      end
+
       def parameter(arg = nil)
         if arg.is_a? Hash
           # set param
