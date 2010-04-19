@@ -1,83 +1,52 @@
 # -*- mode: ruby -*-
 
-TMP_DIR = "/tmp"
-RESULT_DIR = "./result"
-TPCC_DIR = "./tpcc-impl"
+TERMWIDTH = 80
 
-title "Default TPC-C experiment plan"
-description "This is a default TPC-C experiment plan specification file."
+title "Default experiment plan"
+description "This is a default experiment plan specification file."
 
 def_parameters do
-  # the number of warehouses: scale factor of TPC-C
-  variable :num_warehouse => [100, 500]
-  
-  # the number of threads
-  variable :num_threads => 1..10
+  # use 'variable' for defining variables
+  variable :foo => ["fooA", "fooB"]
+  variable :bar => 1..5
 
-  # think-time throttling: 0.0 means no wait, 1.0 means spec-compliant wait
-  # parameter :tt_throttle => 1.0
-  parameter :tt_throttle => 0.0
-
-  # benchmark duration in second
-  parameter :duration => 3600 * 4
-
-  # interval of monitoring TPC-C performance metrics in second
-  # metrics: MQTh, commit/abort rate, ...
-  parameter :perf_monitor_interval => 60
-  
-  # interval of monitoring system state in second
-  # metrics: disk io, cpu usage, ...
-  parameter :sys_monitor_interval => 1
-
-  # population
-  parameter :do_population => true
-  parameter :population_parallelism => 20
-
-  # ACID property test
-  parameter :do_atomicity_test => false
-  parameter :do_consistency_test => false
-
-  ## debug flags
-  parameter :duplicated_population => false
-  parameter :verbose => false
-
-  ## mysql config
-  parameter :my_datadir => "/home/haya/tsujido/usr/var/mysqld"
-  parameter :my_sock => "/home/haya/tsujido/var/run/mysqld/mysql.sock"
-  parameter :my_username => "root"
-  parameter :my_password => ""
-  parameter :my_database => "TPCC"
-  parameter :my_port => "12345"
-  
-  # IOPS monitored device list
-  parameter :io_devices => ["sdc"]
-
-  ## InnoDB(mysql) config
-  parameter :use_raw_device => true
-  if parameter[:use_raw_device] # parameter(:use_raw_device)
-    parameter :innodb_data_home_dir => ""
-    parameter :innodb_data_file_path => "/dev/sdc:1000Graw"
-  else
-    parameter :innodb_data_home_dir => File.join(parameter(:my_datadir), "innodb-data")
-    parameter :innodb_data_file_path => "ibdata1:1000G"
-  end
-
-  parameter :innodb_log_group_home_dir => parameter(:innodb_data_home_dir)
-
-  parameter :innodb_buffer_pool_size => "20G"
-  parameter :innodb_additional_mem_pool_size => "1G"
-
-  parameter :innodb_log_file_size => "1G"
-  parameter :innodb_log_buffer_size => "256M"
-  parameter :innodb_lock_wait_timeout => "50"
-  parameter :innodb_flush_log_at_trx_commit => "1"
-  parameter :innodb_flush_method => "O_DIRECT"
-  
-  ## slow query log
-  parameter :slow_query_log => false
-  parameter :slow_query_log_file => File.join(TMP_DIR, "slow-query.log")
+  # use 'parameter' for defining static parameters
+  parameter :baz => "baz"
 end
 
+# preparation
+def_prep do |params|
+  puts '*' * TERMWIDTH
+  puts "Start execution: #{plan.title}"
+end
+
+# routine executed for each combination of values of variables
 def_routine do |params|
-  puts "hello world, #{params.num_warehouse}, #{params.num_threads}"
+  puts '-' * TERMWIDTH
+
+  # the value of "parameter/variable :foo" can be obtained by
+  # "param[:foo]" or "param.foo"
+  puts "hello world, #{params.foo}"
+  puts "hello world, #{params[:bar]}"
+
+  puts(params.foo + params.baz)
+
+  touch = touch_result_file("touched-file.log")
+
+  with_result_file("test.log") do |test_log|
+    test_log.puts "hello world, #{params.foo}"
+    test_log.puts "hello world, #{params[:bar]}"
+    test_log.puts(params.foo + params.baz)
+    [$stdout, test_log].map{|io| io.puts "touched #{touch}"}
+  end
+
+  puts '-' * TERMWIDTH
+end
+
+# cleanup
+def_cleanup do |params|
+  puts '*' * TERMWIDTH
+  puts "Finished execution: #{plan.title}"
+  puts "FileUtils.remove(#{plan.file_path.inspect})"
+  # FileUtils.remove(plan.file_path)
 end
