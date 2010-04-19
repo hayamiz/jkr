@@ -1,4 +1,5 @@
 
+require 'fileutils'
 require 'jkr/utils'
 
 class Jkr
@@ -24,6 +25,15 @@ class Jkr
     def self.run(env, plan)
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir)
       trials = self.make_trials(resultset_dir, plan)
+
+      FileUtils.copy_file(plan.file_path,
+                          File.join(resultset_dir, File.basename(plan.file_path)))
+      params = plan.params.merge(plan.vars)
+      plan.prep.call(params)
+      trials.each do |trial|
+        trial.run
+      end
+      plan.cleanup.call(params)
     end
 
     def initialize(result_dir, plan, params)
@@ -38,6 +48,7 @@ class Jkr
         self[name]
       end
 
+      Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
       @plan.routine.call(@params)
     end
   end
