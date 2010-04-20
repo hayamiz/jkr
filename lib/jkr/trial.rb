@@ -51,7 +51,8 @@ class Jkr
       end
 
       Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
-      @plan.routine.call(@params)
+      @plan.routine.call(@plan, @params)
+      Jkr::TrialUtils.undef_routine_utils(@plan)
     end
   end
 end
