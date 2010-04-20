@@ -29,16 +29,24 @@ class Jkr
                  end)
       options = {
         :wait   => true,
+        :timeout => 0,
+        :raise_failure => true,
         :stdin  => nil,
         :stdout => [$stdout],
         :stderr => [$stderr]
       }.merge(options)
 
+      if options[:timeout] > 0 && ! options[:wait]
+        raise ArgumentError.new("cmd: 'wait' must be true if 'timeout' specified.")
+      end
+
+      start_time = Time.now
       pid = nil
       status = nil
       args.flatten!
+      command = args.join(" ")
       t = Thread.new do
-        status = POpen4::popen4(args.join(" ")) do |p_stdout, p_stderr, p_stdin, p_id|
+        status = POpen4::popen4(command) do |p_stdout, p_stderr, p_stdin, p_id|
           pid = p_id
           stdouts = if options[:stdout].is_a? Array
                       options[:stdout]
@@ -90,10 +98,22 @@ class Jkr
           end while ! read_fds.empty?
         end
       end
+      timekeeper = nil
+      if options[:timeout] > 0
+        timekeeper = Thread.new do
+          sleep(options[:timeout])
+          begin
+            Process.kill(:INT, pid)
+          rescue Errno::ESRCH # No such process
+          end
+        end
+      end
       if options[:wait]
         t.join
+        if status.exitstatus != 0
+          raise RuntimeError.new("'#{command}' failed.")
+        end
       end
-      
       while ! pid
         sleep 0.001 # do nothing
       end
@@ -125,7 +145,10 @@ class Jkr
       if options[:kill_on_exit]
         Process.kill(:INT, pid)
       else
-        Process.waitpid(pid)
+        begin
+          Process.waitpid(pid)
+        rescue Errno::ECHILD
+        end
       end
     end
   end
