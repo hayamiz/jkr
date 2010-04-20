@@ -112,7 +112,7 @@ class Jkr
       end
       if options[:wait]
         t.join
-        if status.exitstatus != 0
+        if options[:raise_failure] && status.exitstatus != 0
           raise RuntimeError.new("'#{command}' failed.")
         end
       end
