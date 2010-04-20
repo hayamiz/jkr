@@ -23,7 +23,8 @@ class Jkr
     end
 
     def self.run(env, plan)
-      resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir)
+      plan_suffix = File.basename(plan.file_path, ".plan")
+      resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
       trials = self.make_trials(resultset_dir, plan)
 
       FileUtils.copy_file(plan.file_path,
