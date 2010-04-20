@@ -74,7 +74,7 @@ class Jkr
       def self.load_plan(plan)
         plan_loader = self.new(plan)
         plan.src = File.open(plan.file_path, "r").read
-        plan_loader.instance_eval(plan.src, plan.file_path, 0)
+        plan_loader.instance_eval(plan.src, plan.file_path, 1)
         plan
       end
       
