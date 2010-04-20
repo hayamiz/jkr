@@ -30,11 +30,12 @@ class Jkr
       FileUtils.copy_file(plan.file_path,
                           File.join(resultset_dir, File.basename(plan.file_path)))
       params = plan.params.merge(plan.vars)
-      plan.prep.call(params)
+      plan.freeze
+      plan.prep.call(plan)
       trials.each do |trial|
         trial.run
       end
-      plan.cleanup.call(params)
+      plan.cleanup.call(plan)
     end
 
     def initialize(result_dir, plan, params)

@@ -8,11 +8,12 @@ class Jkr
     
     attr_accessor :params
     attr_accessor :vars
-    
+  
+    # Proc's
     attr_accessor :prep
     attr_accessor :cleanup
     attr_accessor :routine
-    
+    attr_accessor :analysis
 
     attr_accessor :src
 
@@ -105,6 +106,9 @@ class Jkr
       end
       def def_cleanup(&proc)
         @plan.cleanup = proc
+      end
+      def def_analysis(&proc)
+        @plan.analysis = proc
       end
 
       def parameter(arg = nil)

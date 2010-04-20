@@ -80,109 +80,129 @@ EOS
 
   ## Command definitions
 
-  def list_cmd(argv)
-    puts "Existing plans:"
-    puts
-    plans = @jkr_env.plans.map do |plan_file_path|
-      plan = Jkr::Plan.new(@jkr_env, plan_file_path)
-      [File.basename(plan_file_path, ".plan"), plan.title]
-    end
-    maxlen = plans.map{|plan| plan[0].size}.max
-    plans.each do |plan|
-      printf(" %#{maxlen}s : %s\n", plan[0], plan[1])
-    end
-    puts
-  end
-  def list_cmd_help()
-    {
-      :summary => "list existing plans",
-      :desc => "list existing plans"
-    }
-  end
-
-  def run_cmd(argv)
-    filter = (if argv.empty?
-                lambda{|x| true}
-              else
-                lambda do |plan_file_path|
-                  argv.map{|arg|
-                    Regexp.compile(arg)
-                  }.any?{|regex|
-                    File.basename(plan_file_path) =~ regex
-                  }
-                end
-              end)
-    @jkr_env.plans.each do |plan_file_path|
-      if filter.call(plan_file_path)
-        plan = Jkr::Plan.new(@jkr_env, plan_file_path)
-        Jkr::Trial.run(@jkr_env, plan)
-      end
+  def analyze_cmd(argv)
+    argv.each do |arg|
+      Jkr::Analysis.analyze(@jkr_env, arg)
     end
   end
-  def run_cmd_help()
-    {
-      :summary => "run experiments",
-      :desc => ""
-    }
-  end
+  def analyze_cmd_help()
+     {
+       :summary => "analyze results",
+       :desc => "Usage: #{$0} analyze #{ul('RESULT_ID')} ..."
+     }
+   end
 
-  def install_cmd(argv)
-    jkr_dir = File.join(@options[:directory], "jkr")
-    result_dir = File.join(@options[:directory], "jkr", "result")
-    plan_dir = File.join(@options[:directory], "jkr", "plan")
-    [jkr_dir, result_dir, plan_dir].each{|dir| FileUtils.mkdir(dir) }
-    File.open(File.join(plan_dir, "sample.plan"), "w") do |file|
-      file.puts <<EOSS
-# -*- mode: ruby -*-
+   def list_cmd(argv)
+     puts "Existing plans:"
+     puts
+     plans = @jkr_env.plans.map do |plan_file_path|
+       plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+       [File.basename(plan_file_path, ".plan"), plan.title]
+     end
+     maxlen = plans.map{|plan| plan[0].size}.max
+     plans.each do |plan|
+       printf(" %#{maxlen}s : %s\n", plan[0], plan[1])
+     end
+     puts
+   end
+   def list_cmd_help()
+     {
+       :summary => "list existing plans",
+       :desc => "list existing plans"
+     }
+   end
 
-title "Sample experiment plan"
-description <<EOS
-This is a sample experiment plan specification file.
-EOS
+   def run_cmd(argv)
+     filter = (if argv.empty?
+                 lambda{|x| true}
+               else
+                 lambda do |plan_file_path|
+                   argv.map{|arg|
+                     Regexp.compile(arg)
+                   }.any?{|regex|
+                     File.basename(plan_file_path) =~ regex
+                   }
+                 end
+               end)
+     @jkr_env.plans.each do |plan_file_path|
+       if filter.call(plan_file_path)
+         plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+         Jkr::Trial.run(@jkr_env, plan)
+       end
+     end
+   end
+   def run_cmd_help()
+     {
+       :summary => "run experiments",
+       :desc => ""
+     }
+   end
 
-# Discard this file after the experiments conducted.
-discard_on_finish
+   def install_cmd(argv)
+     jkr_dir = File.join(@options[:directory], "jkr")
+     result_dir = File.join(@options[:directory], "jkr", "result")
+     plan_dir = File.join(@options[:directory], "jkr", "plan")
+     [jkr_dir, result_dir, plan_dir].each{|dir| FileUtils.mkdir(dir) }
+     File.open(File.join(plan_dir, "sample.plan"), "w") do |file|
+       file.puts <<EOSS
+ # -*- mode: ruby -*-
 
-def_experiment_plan do |p|
-  # 'p.variable' for variables
-  # 'p.param' for static parameters
-  
-  p.variable :num_xxx => 1..10
-  p.param :use_yyy => false
+ title "Sample experiment plan"
+ description <<EOS
+ This is a sample experiment plan specification file.
+ EOS
 
-  if p.param[:use_yyy]
-    p.param[:yyy_zzz] = "foo"
-  else
-    p.param[:yyy_zzz] = "bar"
-  end
-end
+ # Discard this file after the experiments conducted.
+ discard_on_finish
 
-def_execution do |params|
-  puts "hello world, #\{params.num_xxx\}, #\{params[:num_xxx]\}"
-end
+ def_experiment_plan do |p|
+   # 'p.variable' for variables
+   # 'p.param' for static parameters
+
+   p.variable :num_xxx => 1..10
+   p.param :use_yyy => false
+
+   if p.param[:use_yyy]
+     p.param[:yyy_zzz] = "foo"
+   else
+     p.param[:yyy_zzz] = "bar"
+   end
+ end
+
+ def_execution do |params|
+   puts "hello world, #\{params.num_xxx\}, #\{params[:num_xxx]\}"
+ end
 EOSS
-    end
-  end
-  def install_cmd_help()
-    {
-      :summary => "install jkr skelton setting files",
-      :desc => ""
-    }
-  end
+     end
+   end
+   def install_cmd_help()
+     {
+       :summary => "install jkr skelton setting files",
+       :desc => ""
+     }
+   end
 
-  def help_cmd(argv)
-    case argv[0]
-    when /^commands/
-      commands = self.jkr_commands
-      puts "Available commands:"
-      max_len = commands.map(&:size).max
-      commands.each do |command|
-        help = self.send("#{command}_cmd_help")
-        printf "  %#{max_len}s : #{help[:summary]}\n", command
+   def help_cmd(argv)
+     case argv[0]
+     when /^commands/
+       commands = self.jkr_commands
+       puts "Available commands:"
+       max_len = commands.map(&:size).max
+       commands.each do |command|
+         help = self.send("#{command}_cmd_help")
+         printf "  %#{max_len}s : #{help[:summary]}\n", command
+       end
+       puts
+     else
+       commands = argv.select{|arg| self.jkr_commands.include?(arg)}
+       if commands.size > 0
+         commands.each do |cmd|
+           help = self.send("#{cmd}_cmd_help")
+           puts("== help: #{cmd} ==\n#{help[:summary]}\n\n#{help[:desc]}\n")
+        end
+      else
+        puts @optparser.help
       end
-      puts
-    else
-      puts @optparser.help
     end
   end
   def help_cmd_help()
