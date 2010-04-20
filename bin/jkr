@@ -80,6 +80,26 @@ EOS
 
   ## Command definitions
 
+  def list_cmd(argv)
+    puts "Existing plans:"
+    puts
+    plans = @jkr_env.plans.map do |plan_file_path|
+      plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+      [File.basename(plan_file_path, ".plan"), plan.title]
+    end
+    maxlen = plans.map{|plan| plan[0].size}.max
+    plans.each do |plan|
+      printf(" %#{maxlen}s : %s\n", plan[0], plan[1])
+    end
+    puts
+  end
+  def list_cmd_help()
+    {
+      :summary => "list existing plans",
+      :desc => "list existing plans"
+    }
+  end
+
   def run_cmd(argv)
     filter = (if argv.empty?
                 lambda{|x| true}
@@ -160,6 +180,7 @@ EOSS
         help = self.send("#{command}_cmd_help")
         printf "  %#{max_len}s : #{help[:summary]}\n", command
       end
+      puts
     else
       puts @optparser.help
     end
