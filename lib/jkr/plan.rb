@@ -1,5 +1,6 @@
 
 require 'jkr/utils'
+require 'tempfile'
 
 class Jkr
   class Plan
