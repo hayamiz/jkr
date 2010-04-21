@@ -5,6 +5,28 @@ require 'thread'
 
 require 'jkr/userutils'
 
+class Barrier
+  def initialize(num)
+    @mux = Mutex.new
+    @cond = ConditionVariable.new
+
+    @num = num
+    @cur_num = num
+  end
+
+  def wait()
+    @mux.lock
+    @cur_num -= 1
+    if @cur_num == 0
+      @cur_num = @num
+      @cond.broadcast
+    else
+      @cond.wait(@mux)
+    end
+    @mux.unlock
+  end
+end
+
 class Jkr
   class Utils
     def self.reserve_next_dir(dir, suffix = "")
@@ -28,9 +50,30 @@ class Jkr
     def procdb
       @procdb ||= Hash.new
     end
-    def procdb_spawn(pid, command)
+    def procdb_spawn(pid, command, owner_thread)
       @procdb_mutex.synchronize do
-        self.procdb[pid] = {:pid => pid, :command => command, :status => nil}
+        self.procdb[pid] = {
+          :pid => pid,
+          :command => command,
+          :thread => owner_thread,
+          :status => nil
+        }
+      end
+    end
+    def procdb_waitpid(pid)
+      t = nil
+      @procdb_mutex.synchronize do
+        if self.procdb[pid]
+          t = self.procdb[pid][:thread]
+        end
+      end
+      t.join if t
+    end
+    def procdb_resetpid(pid)
+      @procdb_mutex.synchronize do
+        if self.procdb[pid]
+          self.procdb.delete(pid)
+        end
       end
     end
     def procdb_update_status(pid, status)
@@ -51,7 +94,7 @@ class Jkr
     end
     def procdb_get_command(pid)
       proc = self.procdb_get(pid)
-      proc && proc[:status]
+      proc && proc[:command]
     end
 
     def cmd(*args)
@@ -80,10 +123,13 @@ class Jkr
       args.flatten!
       args.map!(&:to_s)
       command = args.join(" ")
+      barrier = Barrier.new(2)
+
       t = Thread.new {
+        pipers = []
         status = POpen4::popen4(command){|p_stdout, p_stderr, p_stdin, p_id|
           pid = p_id
-          procdb_spawn(p_id, command)
+          barrier.wait
           stdouts = if options[:stdout].is_a? Array
                       options[:stdout]
                     else
@@ -94,63 +140,75 @@ class Jkr
                     else
                       [options[:stderr]]
                     end
-          
-          read_fds = [p_stdout, p_stderr]
-          if options[:stdin]
-            read_fds << options[:stdin]
-          else
-            p_stdin.close
-          end
-          
-          begin
-            begin
-              ready = IO.select(read_fds)
-            rescue IOError => err
-              if options[:stdin] && options[:stdin].closed?
-                read_fds.reject!{|fd| fd == options[:stdin]}
-                p_stdin.close
-              end
-            end
-            
-            ready[0].each do |io|
+          pipers << Thread.new{
+            target = p_stdin
+            while true
               begin
-                buf = io.read_nonblock(4096)
-              rescue EOFError => err
-                read_fds.reject!{|fd| fd == io}
-              end
-              
-              if io == p_stdout
-                stdouts.each do |out|
-                  out.print buf
+                ready = IO.select([target])
+                buf = target.read_nonblock(4096)
+                stdouts.each{|out| out.print buf}
+              rescue IOError => err
+                if target.closed?
+                  Thread.exit
                 end
-              elsif io == p_stderr
-                stderrs.each do |out|
-                  out.print buf
-                end
-              else
-                p_stdin.print(buf)
               end
             end
-          end while ! read_fds.empty?
+          }
+          pipers << Thread.new{
+            target = p_stderr
+            while true
+              begin
+                ready = IO.select([target])
+                buf = target.read_nonblock(4096)
+                stderrs.each{|out| out.print buf}
+              rescue IOError => err
+                if target.closed?
+                  Thread.exit
+                end
+              end
+            end
+          }
+          if options[:stdin]
+            pipers << Thread.new{
+              target = options[:stdin]
+              while true
+                begin
+                  ready = IO.select([target])
+                  buf = target.read_nonblock(4096)
+                  p_stdin.print buf
+                rescue IOError => err
+                  if target.closed?
+                    Thread.exit
+                  end
+                end
+              end
+            }
+          end
         }
-        procdb_spawn(pid, command)
-        procdb_update_status(pid, status)
+        pipers.each{|t| Thread.kill(t)}
         raise ArgumentError.new("Invalid command: #{command}") unless status
-        status
+        procdb_update_status(pid, status)
       }
+      barrier.wait
+      procdb_spawn(pid, command, t)
+      timekeeper = nil
+
+      killed = false
       timekeeper = nil
       if options[:timeout] > 0
         timekeeper = Thread.new do
           sleep(options[:timeout])
           begin
             Process.kill(:INT, pid)
+            killed = true
           rescue Errno::ESRCH # No such process
           end
         end
       end
       if options[:wait]
+        timekeeper.join if timekeeper
         t.join
-        if options[:raise_failure] && status.exitstatus != 0
+        if (! killed) && options[:raise_failure] && status.exitstatus != 0
           raise RuntimeError.new("'#{command}' failed.")
         end
       end
@@ -181,22 +239,23 @@ class Jkr
       rescue Exception => e
         err = e
       end
-      
+
       if options[:kill_on_exit]
         Process.kill(:INT, pid)
       else
         if err
-          Process.kill(:TERM, pid)
-        else
           begin
-            Process.waitpid(pid)
-          rescue Errno::ECHILD
+            Process.kill(:TERM, pid)
+          rescue Exception
           end
+        else
+          procdb_waitpid(pid)
           status = procdb_get_status(pid)
           unless status && status.exitstatus == 0
             command = procdb_get_command(pid) || "Unknown command"
             raise RuntimeError.new("'#{command}' failed.")
           end
+          procdb_resetpid(pid)
         end
       end
 
