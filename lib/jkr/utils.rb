@@ -124,6 +124,7 @@ class Jkr
       args.map!(&:to_s)
       command = args.join(" ")
       barrier = Barrier.new(2)
+      process_exited = false
 
       t = Thread.new {
         pipers = []
@@ -141,12 +142,25 @@ class Jkr
                       [options[:stderr]]
                     end
           pipers << Thread.new{
-            target = p_stdin
+            target = p_stdout
+            timeout_count = 0
             while true
               begin
-                ready = IO.select([target])
-                buf = target.read_nonblock(4096)
-                stdouts.each{|out| out.print buf}
+                if (ready = IO.select([target], [], [], 1))
+                  ready.first.each do |fd|
+                    buf = fd.read_nonblock(4096)
+                    stdouts.each{|out| out.print buf}
+                  end
+                  Thread.exit if target.eof?
+                else
+                  if process_exited
+                    timeout_count += 1
+                    if timeout_count > 5
+                      target.close_read
+                      Thread.exit
+                    end
+                  end
+                end
               rescue IOError => err
                 if target.closed?
                   Thread.exit
@@ -156,11 +170,24 @@ class Jkr
           }
           pipers << Thread.new{
             target = p_stderr
+            timeout_count = 0
             while true
               begin
-                ready = IO.select([target])
-                buf = target.read_nonblock(4096)
-                stderrs.each{|out| out.print buf}
+                if (ready = IO.select([target], [], [], 1))
+                  ready.first.each do |fd|
+                    buf = fd.read_nonblock(4096)
+                    stderrs.each{|out| out.print buf}
+                  end
+                  Thread.exit if target.eof?
+                else
+                  if process_exited
+                    timeout_count += 1
+                    if timeout_count > 5
+                      target.close_read
+                      Thread.exit
+                    end
+                  end
+                end
               rescue IOError => err
                 if target.closed?
                   Thread.exit
@@ -170,22 +197,34 @@ class Jkr
           }
           if options[:stdin]
             pipers << Thread.new{
-              target = options[:stdin]
-              while true
-                begin
-                  ready = IO.select([target])
-                  buf = target.read_nonblock(4096)
-                  p_stdin.print buf
-                rescue IOError => err
-                  if target.closed?
-                    Thread.exit
+            target = options[:stdin]
+            timeout_count = 0
+            while true
+              begin
+                if (ready = IO.select([target], [], [], 1))
+                  ready.first.each do |fd|
+                      buf = fd.read_nonblock(4096)
+                      p_stdin.print buf
+                    end
+                else
+                  if process_exited
+                    timeout_count += 1
+                    if timeout_count > 5
+                      p_stdin.close_write
+                      Thread.exit
+                    end
                   end
                 end
+              rescue IOError => err
+                if target.closed?
+                  Thread.exit
+                end
               end
-            }
+            end
+          }
           end
         }
-        pipers.each{|t| Thread.kill(t)}
+        pipers.each{|t| t.join}
         raise ArgumentError.new("Invalid command: #{command}") unless status
         procdb_update_status(pid, status)
       }
@@ -217,6 +256,45 @@ class Jkr
       end
 
       pid
+    end
+
+    def with_process2(*args)
+      options = (if args.last.is_a? Hash
+                   args.pop
+                 else
+                   {}
+                 end )
+      options = {
+        :kill_on_exit => false
+      }.merge(options)
+      
+      command = args.flatten.map(&:to_s).join(" ")
+      pid = Process.spawn(command)
+
+      err = nil
+      begin
+        yield
+      rescue Exception => e
+        err = e
+      end
+
+      if options[:kill_on_exit]
+        Process.kill(:INT, pid)
+      else
+        if err
+          begin
+            Process.kill(:TERM, pid)
+          rescue Exception
+          end
+        else
+          begin
+            status = Process.waitpid(pid)
+            p status
+          rescue Errno::ESRCH
+          end
+        end
+      end
+      raise err if err
     end
 
     def with_process(*args)
