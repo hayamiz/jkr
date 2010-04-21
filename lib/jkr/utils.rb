@@ -1,6 +1,7 @@
 
 require 'fileutils'
 require 'popen4'
+require 'thread'
 
 require 'jkr/userutils'
 
@@ -23,7 +24,38 @@ class Jkr
   end
 
   module PlanUtils
+    # info about processes spawned by me
+    def procdb
+      @procdb ||= Hash.new
+    end
+    def procdb_spawn(pid, command)
+      @procdb_mutex.synchronize do
+        self.procdb[pid] = {:pid => pid, :command => command, :status => nil}
+      end
+    end
+    def procdb_update_status(pid, status)
+      @procdb_mutex.synchronize do
+        if self.procdb[pid]
+          self.procdb[pid][:status] = status
+        end
+      end
+    end
+    def procdb_get(pid)
+      @procdb_mutex.synchronize do
+        self.procdb[pid]
+      end
+    end
+    def procdb_get_status(pid)
+      proc = self.procdb_get(pid)
+      proc && proc[:status]
+    end
+    def procdb_get_command(pid)
+      proc = self.procdb_get(pid)
+      proc && proc[:status]
+    end
+
     def cmd(*args)
+      @procdb_mutex ||= Mutex.new
       options = (if args.last.is_a? Hash
                    args.pop
                  else
@@ -46,10 +78,12 @@ class Jkr
       pid = nil
       status = nil
       args.flatten!
+      args.map!(&:to_s)
       command = args.join(" ")
-      t = Thread.new do
-        status = POpen4::popen4(command) do |p_stdout, p_stderr, p_stdin, p_id|
+      t = Thread.new {
+        status = POpen4::popen4(command){|p_stdout, p_stderr, p_stdin, p_id|
           pid = p_id
+          procdb_spawn(p_id, command)
           stdouts = if options[:stdout].is_a? Array
                       options[:stdout]
                     else
@@ -98,8 +132,12 @@ class Jkr
               end
             end
           end while ! read_fds.empty?
-        end
-      end
+        }
+        procdb_spawn(pid, command)
+        procdb_update_status(pid, status)
+        raise ArgumentError.new("Invalid command: #{command}") unless status
+        status
+      }
       timekeeper = nil
       if options[:timeout] > 0
         timekeeper = Thread.new do
@@ -130,9 +168,9 @@ class Jkr
                    {}
                  end )
       options = {
-        :kill_on_exit => false,
-        :wait => false
+        :kill_on_exit => false
       }.merge(options)
+      options[:wait] = false
 
       args.push(options)
       pid = cmd(*args)
@@ -140,18 +178,29 @@ class Jkr
       err = nil
       begin
         yield
-      rescue StandardError => e
+      rescue Exception => e
         err = e
       end
       
       if options[:kill_on_exit]
         Process.kill(:INT, pid)
       else
-        begin
-          Process.waitpid(pid)
-        rescue Errno::ECHILD
+        if err
+          Process.kill(:TERM, pid)
+        else
+          begin
+            Process.waitpid(pid)
+          rescue Errno::ECHILD
+          end
+          status = procdb_get_status(pid)
+          unless status && status.exitstatus == 0
+            command = procdb_get_command(pid) || "Unknown command"
+            raise RuntimeError.new("'#{command}' failed.")
+          end
         end
       end
+
+      raise err if err
     end
   end
 
@@ -187,7 +236,7 @@ def with_result_file(basename, mode = "a+")
   err = nil
   begin
     yield(file)
-  rescue StandardError => e
+  rescue Exception => e
     err = e
   end
   file.close
@@ -247,7 +296,7 @@ def with_common_file(basename, mode = "r")
   err = nil
   begin
     yield(file)
-  rescue StandardError => e
+  rescue Exception => e
     err = e
   end
   file.close
@@ -260,7 +309,7 @@ def with_result_file(basename, mode = "r")
   err = nil
   begin
     yield(file)
-  rescue StandardError => e
+  rescue Exception => e
     err = e
   end
   file.close
