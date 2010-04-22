@@ -110,7 +110,7 @@ class Jkr
             vals = row.split
             wallclock = vals.shift
             unless time
-              unless wallclock =~ /\d{2}:\d{2}:\d{2}/
+              unless wallclock =~ /(\d{2}):(\d{2}):(\d{2})/
                 raise RuntimeError.new("Cannot extract wallclock time from mpstat data")
               end
               time = Time.local(date.year, date.month, date.day,
