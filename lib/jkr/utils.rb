@@ -339,6 +339,16 @@ class Jkr
 
       raise err if err
     end
+
+    def use_script(name)
+      name = name.to_s
+      name = name + ".rb" unless name =~ /\.rb$/
+      dir = @plan.jkr_env.jkr_script_dir
+      path = File.join(dir, name)
+      script = File.open(path, "r").read
+      self.instance_eval(script, path, 1)
+      true
+    end
   end
 
   class TrialUtils

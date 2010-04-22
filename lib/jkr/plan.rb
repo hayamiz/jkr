@@ -19,6 +19,7 @@ class Jkr
     attr_accessor :src
 
     attr_reader :file_path
+    attr_reader :jkr_env
 
     def initialize(jkr_env, plan_file_path = nil)
       @jkr_env = jkr_env
