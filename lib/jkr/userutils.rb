@@ -1,4 +1,5 @@
 
+require 'kconv'
 require 'time'
 require 'date'
 require 'csv'
@@ -6,7 +7,15 @@ require 'csv'
 class Jkr
   class SysUtils
     def self.cpu_cores()
+      self.num_cores()
+    end
+
+    def self.num_cores()
       `grep "core id" /proc/cpuinfo|wc -l`.to_i
+    end
+
+    def self.num_processors()
+      `grep "physical id" /proc/cpuinfo|sort|uniq|wc -l`.to_i
     end
   end
 
