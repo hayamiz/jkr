@@ -2,12 +2,10 @@
 class Jkr
   class Analysis
     def self.analyze(env, resultset_num)
-      if resultset_num.is_a? Integer
-        resultset_num = sprintf "%03d", resultset_num
-      end
+      resultset_num = sprintf "%03d", resultset_num.to_i
       resultset_dir = Dir.glob(File.join(env.jkr_result_dir, resultset_num)+"*")
       if resultset_dir.size != 1
-        raise RuntimeError.new "cannot specify resultset dir"
+        raise RuntimeError.new "cannot specify resultset dir (#{resultset_dir.join(" ")})"
       end
       resultset_dir = resultset_dir.first
 
