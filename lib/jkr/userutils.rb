@@ -88,7 +88,7 @@ class Jkr
       date = nil
       last_time = nil
       self.read_blockseq(io_or_filepath) do |blockstr|
-        if blockstr.include?(hostname) && blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})/
+        if blockstr =~ /^Linux/ && blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})$/
           # the first line
           y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
           date = Date.new(2000 + y, m, d)
