@@ -1,8 +1,14 @@
-.autotest
 History.txt
 Manifest.txt
 README.txt
 Rakefile
 bin/jkr
 lib/jkr.rb
+lib/jkr/analysis.rb
+lib/jkr/env.rb
+lib/jkr/plan.rb
+lib/jkr/rake.rb
+lib/jkr/trial.rb
+lib/jkr/userutils.rb
+lib/jkr/utils.rb
 test/test_jkr.rb

@@ -414,7 +414,7 @@ def resultset()
   dirs = Dir.glob(File.join(#{resultset_dir.inspect}, "*"))
   dirs.map{|dir| File.basename dir}.select{|basename|
     basename =~ /\\A\\d{3,}\\Z/
-  }
+  }.sort
 end
 
 def result_file_name(num, basename)
