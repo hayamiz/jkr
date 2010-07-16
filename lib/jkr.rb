@@ -1,4 +1,5 @@
 
+require 'jkr/array'
 require 'jkr/env'
 require 'jkr/plan'
 require 'jkr/trial'
