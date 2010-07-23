@@ -20,4 +20,26 @@ class Array
   def sterr()
     self.stdev / Math.sqrt(self.size)
   end
+
+  def every?(&block)
+    ret = true
+    self.each do |elem|
+      unless block.call(elem)
+        ret = false
+        break
+      end
+    end
+    ret
+  end
+
+  def every?(&block)
+    ret = false
+    self.each do |elem|
+      if block.call(elem)
+        ret = true
+        break
+      end
+    end
+    ret
+  end
 end
