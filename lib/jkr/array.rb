@@ -32,7 +32,7 @@ class Array
     ret
   end
 
-  def every?(&block)
+  def any?(&block)
     ret = false
     self.each do |elem|
       if block.call(elem)
