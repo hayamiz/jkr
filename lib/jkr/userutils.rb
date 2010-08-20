@@ -55,6 +55,67 @@ class Jkr
       self.read_blockseq(io_or_filepath, "\n", &block)
     end
 
+    def self.read_sar(sar_filepath)
+      labels = nil
+      date = nil
+      last_time = nil
+      idx = 0
+      self.read_rowseq(sar_filepath){|rowstr|
+        if rowstr =~ /^Linux/ && rowstr =~ /(\d{2})\/(\d{2})\/(\d{2})/
+          y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
+          date = Date.new(2000 + y, m, d)
+          next
+        else
+          row = Hash.new
+
+          time, *vals = rowstr.split
+
+          if vals.size == 0
+            next
+          end
+          if vals.every?{|val| val =~ /\A\d+(?:\.\d+)?\Z/ }
+            vals = vals.map(&:to_f)
+          else
+            # label line
+            labels = vals
+            next
+          end
+
+          unless date
+            raise StandardError.new("cannot find date information in sar log")
+          end
+          unless labels
+            raise StandardError.new("no label information")
+          end
+
+          unless time =~ /(\d{2}):(\d{2}):(\d{2})/
+            if time =~ /Average/
+              next
+            end
+            raise StandardError.new("Invalid time format: #{time}")
+          else
+            time = Time.local(date.year, date.month, date.day,
+                              $~[1].to_i, $~[2].to_i, $~[3].to_i)
+            if last_time && time < last_time
+              date += 1
+              time = Time.local(date.year, date.month, date.day,
+                                $~[1].to_i, $~[2].to_i, $~[3].to_i)
+            end
+
+            row[:time] = time
+            row[:data] = Hash.new
+            labels.each_with_index do |label,idx|
+              row[:data][label] = vals[idx]
+            end
+            row[:labels] = labels
+
+            last_time = time
+          end
+        end
+        row
+      }
+    end
+
     def self.read_mpstat_avg(io_or_filepath)
       self.read_blockseq(io_or_filepath){|blockstr|
         if blockstr =~ /^Average:/
