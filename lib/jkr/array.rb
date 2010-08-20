@@ -42,4 +42,13 @@ class Array
     end
     ret
   end
+
+  def group_by()
+    ret = Hash.new{ Array.new }
+    self.each do |elem|
+      ret[yield(elem)] += [elem]
+    end
+
+    ret
+  end
 end
