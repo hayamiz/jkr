@@ -32,7 +32,7 @@ class Jkr
 
     def self.available_frequency(cpu_idx = 0)
       if self.available?
-        File.read(cpufreqpath(cpu_idx) + "/scaling_available_frequencies").strip.split.map(&:to_i)
+        `cat #{cpufreqpath(cpu_idx) + "/scaling_available_frequencies"}`.strip.split.map(&:to_i).sort
       else
         []
       end
@@ -76,13 +76,36 @@ class Jkr
         }
       end
 
+      def to_s
+        cpuconfig = @cpuconfigs.first
+
+        ret = cpuconfig.governor
+
+        suffix = case cpuconfig.governor
+                 when /\Aperformance\Z/
+                   nil
+                 when /\Apowersave\Z/
+                   nil
+                 when /\Auserspace\Z/
+                   cpuconfig.params[:frequency] / 1000000.0
+                 when /\Aondemand\Z/
+                   nil
+                 end
+
+        if suffix
+          ret += ":freq=#{suffix}GHz"
+        end
+
+        ret
+      end
+
       class CpuConfig
         attr_accessor :governor
         attr_accessor :params
 
         # cpu_idx is just a hint for gathering information
         def initialize(cpu_idx, gov, params = Hash.new)
-          @governor = gov
+          @governor = gov.to_s
           @freq = nil
           @params = params
 
@@ -114,7 +137,7 @@ class Jkr
           when /\Auserspace\Z/
             @freq
           when /\Aondemand\Z/
-            File.read(Cpufreq.cpufreqpath(@cpu_idx) + "/scaling_cur_freq").strip.to_i
+            `cat #{Cpufreq.cpufreqpath(@cpu_idx) + "/scaling_cur_freq"}`.strip.to_i
           end
         end
 
@@ -127,7 +150,7 @@ class Jkr
         end
 
         def self.read_config(cpu_idx)
-          gov = File.read(Cpufreq.cpufreqpath(cpu_idx) + "/scaling_governor").strip
+          gov = `cat #{Cpufreq.cpufreqpath(cpu_idx) + "/scaling_governor"}`.strip
           freq = nil
 
           case gov
@@ -136,7 +159,7 @@ class Jkr
           when /\Aperformance\Z/
             # do nothing
           when /\Auserspace\Z/
-            freq = File.read(Cpufreq.cpufreqpath(cpu_idx) + "/scaling_cur_freq").strip.to_i
+            freq = `cat #{Cpufreq.cpufreqpath(cpu_idx) + "/scaling_cur_freq"}`.strip.to_i
           when /\Aondemand\Z/
             # TODO: read parameters
           end
@@ -145,20 +168,25 @@ class Jkr
         end
 
         def self.write_config(cpu_idx, cpuconfig)
-          File.open(Cpufreq.cpufreqpath(cpu_idx) + "/scaling_governor", "w"){|file|
-            file.puts cpuconfig.governor
-          }
+          `echo #{cpuconfig.governor} > #{Cpufreq.cpufreqpath(cpu_idx) + "/scaling_governor"}`
           case cpuconfig.governor
           when /\Aperformance\Z/
             # do nothing
           when /\Aperformance\Z/
             # do nothing
           when /\Auserspace\Z/
-            File.open(Cpufreq.cpufreqpath(cpu_idx) + "/scaling_setspeed", "w"){|file|
-              file.puts cpuconfig.frequency
-            }
+            `echo #{cpuconfig.frequency} > #{Cpufreq.cpufreqpath(cpu_idx) + "/scaling_setspeed"}`
           when /\Aondemand\Z/
             # TODO: parameters
+          end
+        end
+
+        def to_s
+          case self.governor
+          when /\Auserspace\Z/
+            "#<CpuConfig: governor=#{self.governor}, frequency=#{self.frequency}>"
+          else
+            "#<CpuConfig: governor=#{self.governor}>"
           end
         end
       end
