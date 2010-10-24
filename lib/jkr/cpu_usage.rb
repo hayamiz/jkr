@@ -68,7 +68,6 @@ class Jkr
       end
       clk_diff = (stat2_clk - stat1_clk).to_f
       ret = Hash.new
-      p [stat1, stat2]
       [:user, :sys, :nice, :idle].map{|key|
         ret[key] = (stat2[key] - stat1[key]) / clk_diff
       }
