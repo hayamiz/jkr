@@ -177,6 +177,12 @@ class Jkr
           when /\Auserspace\Z/
             `echo #{cpuconfig.frequency} > #{Cpufreq.cpufreqpath(cpu_idx) + "/scaling_setspeed"}`
           when /\Aondemand\Z/
+            if cpuconfig.params[:up_threshold]
+              `echo #{cpuconfig.params[:up_threshold]} > #{Cpufreq.cpufreqpath(cpu_idx) + "/ondemand/up_threshold"}`
+            end
+            if cpuconfig.params[:sampling_rate]
+              `echo #{cpuconfig.params[:sampling_rate]} > #{Cpufreq.cpufreqpath(cpu_idx) + "/ondemand/sampling_rate"}`
+            end
             # TODO: parameters
           end
         end

@@ -34,19 +34,22 @@ class Jkr
         end
       end
 
-      result = []
-      bufstr = ""
-      while ! file.eof?
-        bufstr += file.read(BLOCKSIZE)
-        blocks = bufstr.split(separator)
-        bufstr = blocks.pop
-        blocks.each do |block|
-          ret = proc.call(block)
-          result.push(ret) if ret
-        end
-      end
-      ret = proc.call(bufstr)
-      result.push(ret) if ret
+      #result = []
+      #bufstr = ""
+      #while ! file.eof?
+      #  bufstr += file.read(BLOCKSIZE)
+      #  blocks = bufstr.split(separator)
+      #  bufstr = blocks.pop
+      #  blocks.each do |block|
+      #    ret = proc.call(block)
+      #    result.push(ret) if ret
+      #  end
+      #end
+      #ret = proc.call(bufstr)
+      #result.push(ret) if ret
+      result = file.read.split(separator).map do |x|
+        proc.call(x)
+      end.compact
 
       result
     end
@@ -149,7 +152,7 @@ class Jkr
       date = nil
       last_time = nil
       self.read_blockseq(io_or_filepath) do |blockstr|
-        if blockstr =~ /^Linux/ && blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})$/
+        if blockstr =~ /Linux/ && blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})/
           # the first line
           y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
           date = Date.new(2000 + y, m, d)
@@ -196,6 +199,76 @@ class Jkr
             }
           }
           result
+        end
+      end
+    end
+
+    #
+    # This function parses _io_or_filepath_ as an iostat log and
+    # returns the parsed result.
+    #
+    # _block_ :: If given, invoked for each iostat record like
+    #            block.call(t, record)
+    #            t ... wallclock time of the record
+    #            record ... e.g. {"sda" => {"rrqm/s" => 0.0, ...}, ...}
+    #
+    def self.read_iostat(io_or_filepath, &block)
+      hostname = `hostname`.strip
+      
+      date = nil
+      last_time = nil
+      sysname_regex = Regexp.new(Regexp.quote("#{`uname -s`.strip}"))
+      self.read_blockseq(io_or_filepath) do |blockstr|
+        if blockstr =~ sysname_regex
+          # the first line
+          if blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})$/
+            y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
+            date = Date.new(2000 + y, m, d)
+            next
+          end
+        else
+          rows = blockstr.lines.map(&:strip)
+          timestamp = rows.shift
+          time = nil
+          if timestamp =~ /(\d{2})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/
+            y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
+            time = Time.local(y, m, d, $~[4].to_i, $~[5].to_i, $~[6].to_i)
+          elsif date && timestamp =~ /Time: (\d{2}):(\d{2}):(\d{2})/
+            time = Time.local(date.year, date.month, date.day,
+                              $~[1].to_i, $~[2].to_i, $~[3].to_i)
+          end
+          
+          unless time
+            unless date
+              raise StandardError.new("Cannot find date in your iostat log: #{io_or_filepath}")
+            end
+            raise StandardError.new("Cannot find timestamp in your iostat log: #{io_or_filepath}")
+          end
+
+          labels = rows.shift.split
+          unless labels.shift =~ /Device:/
+            raise StandardError.new("Invalid iostat log: #{io_or_filepath}")
+          end
+
+          record = Hash.new
+          rows.each do |row|
+            vals = row.split
+            dev = vals.shift
+            unless vals.size == labels.size
+              raise StandardError.new("Invalid iostat log: #{io_or_filepath}")
+            end
+            record_item = Hash.new
+            labels.each do |label|
+              record_item[label] = vals.shift.to_f
+            end
+            record[dev] = record_item
+          end
+
+          if block.is_a? Proc
+            block.call(time, record)
+          end
+
+          [time, record]
         end
       end
     end

@@ -2,7 +2,8 @@
 class Jkr
   class CpuUsageMonitor
     def initialize
-      @checkpoints = []
+      @checkpoint1 = nil
+      @checkpoint2 = nil
 
       self.checkpoint
     end
@@ -29,11 +30,12 @@ class Jkr
     end
 
     def checkpoint
-      @checkpoints.push(self.read_stat)
+      @checkpoint2 = @checkpoint1
+      @checkpoint1 = self.read_stat
     end
 
     def reset
-      @checkpoints = []
+      @checkpoint2 = @checkpoint1 = nil
     end
 
     def checkpoint_and_get_usage
@@ -42,19 +44,19 @@ class Jkr
     end
 
     def get_usage
-      if @checkpoints.size < 1
+      unless @checkpoint1
         raise RuntimeError.new("Checkpointing is required")
       end
 
-      self.calc_usage(self.read_stat[:system], @checkpoints.last[:system])
+      self.calc_usage(self.read_stat[:system], @checkpoint1[:system])
     end
 
     def get_last_usage
-      if @checkpoints.size < 2
+      unless @checkpoint1 && @checkpoint2
         raise RuntimeError.new("At least two checkpoints are required")
       end
 
-      self.calc_usage(@checkpoints[@checkpoints.size - 2][:system], @checkpoints[@checkpoints.size - 1][:system])
+      self.calc_usage(@checkpoint2[:system], @checkpoint1[:system])
     end
 
     def calc_usage(stat1, stat2)
@@ -71,6 +73,7 @@ class Jkr
       [:user, :sys, :nice, :idle].map{|key|
         ret[key] = (stat2[key] - stat1[key]) / clk_diff
       }
+      ret[:total] = 1.0 - ret[:idle]
 
       ret
     end

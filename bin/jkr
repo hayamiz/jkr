@@ -218,7 +218,10 @@ def main(argv)
   JkrCmd.new.dispatch(argv)
 end
 
-if __FILE__ == $0
+if __FILE__ == $0 || $0 =~ /ruby-prof$/
   main(ARGV.dup)
+else
+  p $0
+  p ARGV
 end
 
