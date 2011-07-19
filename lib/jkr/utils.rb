@@ -46,7 +46,7 @@ class Jkr
       end
       
       num = max_num + 1
-      dir = "#{dir}#{File::SEPARATOR}" + sprintf("%03d%s", num, suffix)
+      dir = "#{dir}#{File::SEPARATOR}" + sprintf("%05d%s", num, suffix)
       FileUtils.mkdir(dir)
       dir
     end
