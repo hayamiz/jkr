@@ -113,19 +113,8 @@ EOS
    end
 
    def run_cmd(argv)
-     filter = (if argv.empty?
-                 lambda{|x| true}
-               else
-                 lambda do |plan_file_path|
-                   argv.map{|arg|
-                     Regexp.compile(arg)
-                   }.any?{|regex|
-                     File.basename(plan_file_path) =~ regex
-                   }
-                 end
-               end)
      @jkr_env.plans.each do |plan_file_path|
-       if filter.call(plan_file_path)
+       if File.basename(plan_file_path) == argv.first + ".plan"
          plan = Jkr::Plan.new(@jkr_env, plan_file_path)
          Jkr::Trial.run(@jkr_env, plan)
        end
