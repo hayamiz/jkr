@@ -123,7 +123,7 @@ end
 def plot_timeseries(config)
   [:plot_data, :output, :title, :xlabel, :ylabel].each do |key|
     unless config[key]
-      $stderr.puts "key '#{key.to_s}' is required for time-series graph"
+      raise ArgumentError.new("key '#{key.to_s}' is required for time-series graph")
       return
     end
   end
@@ -148,7 +148,7 @@ def plot_timeseries(config)
   plot_stmt = "plot " + config[:plot_data].map {|plot_datum|
     [:datafile, :using, :with, :title].each do |key|
       unless plot_datum[key]
-        $stderr.puts "key '#{key.to_s}' is required for a plot_datum of time-series graph"
+        raise ArgumentError.new("key '#{key.to_s}' is required for a plot_datum of time-series graph")
         return
       end
     end
