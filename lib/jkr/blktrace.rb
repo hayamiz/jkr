@@ -12,10 +12,17 @@ class Jkr
     end
 
     def initialize(input_basename)
-      if Dir.glob(input_basename + ".blktrace.*").size == 0
-        raise ArgumentError.new("No such blktrace data: #{input_basename}")
+      if Dir.glob(input_basename + ".blktrace.*").size > 0
+        @input_basename = input_basename
+        puts "multi file: #{input_basename}"
+      else
+        if File.exists?(input_basename)
+          @input_singlefile = input_basename
+          puts "single file: #{input_basename}"
+        else
+          raise ArgumentError.new("No such blktrace data: #{input_basename}")
+        end
       end
-      @input_basename = input_basename
     end
 
     def raw_each(option = {}, &block)
@@ -24,7 +31,12 @@ class Jkr
       else
         limit = ""
       end
-      IO.popen("blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i #{@input_basename} #{limit} | grep '^bt'|sort -k4,4", "r") do |io|
+      if @input_basename
+        cmd = "blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i #{@input_basename} #{limit} | grep '^bt'|sort -k4,4"
+      elsif @input_singlefile
+        cmd = "cat #{@input_singlefile}|blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i - #{limit} | grep '^bt'|sort -k4,4"
+      end
+      IO.popen(cmd, "r") do |io|
         while line = io.gets
           _, cpu, seqno, time, action, rwbs, pos_sec, sz_sec = line.split("\t")
           cpu = cpu.to_i
@@ -54,12 +66,23 @@ class Jkr
         limit = ""
       end
 
-      if option[:cache] && File.exists?(@input_basename + ".cache")
-        records = Marshal.load(File.open(@input_basename + ".cache"))
+      if @input_basename
+        cache_file_path = @input_basename + ".cache"
+      else
+        cache_file_path = @input_singlefile + ".cache"
+      end
+
+      if option[:cache] && File.exists?(cache_file_path)
+        records = Marshal.load(File.open(cache_file_path))
       else
         records = []
         issues = []
-        IO.popen("blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i #{@input_basename} #{limit} | grep '^bt'|sort -k4,4", "r") do |io|
+        if @input_basename
+          cmd = "blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i #{@input_basename} #{limit} | grep '^bt'|sort -k4,4"
+        elsif
+          cmd = "cat #{@input_singlefile}|blkparse -f \"bt\\t%c\\t%s\\t%T.%t\\t%a\\t%d\\t%S\\t%n\\n\" -i - #{limit} | grep '^bt'|sort -k4,4"
+        end
+        IO.popen(cmd, "r") do |io|
           while line = io.gets
             _, cpu, seqno, time, action, rwbs, pos_sec, sz_sec = line.split("\t")
             cpu = cpu.to_i
@@ -94,7 +117,7 @@ class Jkr
             end
           end
         end
-        File.open(@input_basename + ".cache", "w") do |file|
+        File.open(cache_file_path, "w") do |file|
           Marshal.dump(records, file)
         end
       end
