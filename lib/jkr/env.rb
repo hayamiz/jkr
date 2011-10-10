@@ -22,7 +22,7 @@ class Jkr
       
       [@jkr_dir, @jkr_result_dir, @jkr_plan_dir, @jkr_script_dir].each do |dir_path|
         unless Dir.exists?(dir_path)
-          FileUtils.mkdir_p(dir_path)
+          raise InvalidArgument.new("Directory #{dir_path} not found")
         end
       end
     end
