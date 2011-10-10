@@ -6,6 +6,7 @@ class Jkr
   class Plan
     attr_accessor :title
     attr_accessor :desc
+    attr_accessor :short_desc
     
     attr_accessor :params
     attr_accessor :vars
@@ -28,6 +29,7 @@ class Jkr
 
       @title = "no title"
       @desc = "no desc"
+      @short_desc = ""
 
       @params = {}
       @vars = {}
@@ -91,6 +93,10 @@ class Jkr
       
       def description(plan_desc)
         @plan.desc = plan_desc.to_s
+      end
+
+      def short_desc(short_desc)
+        @plan.short_desc.gsub(/ /, '_').gsub(/\//, '!')
       end
       
       def def_parameters(&proc)
