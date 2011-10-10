@@ -8,7 +8,8 @@ def rel_path(basefile, path)
 end
 
 def gnuplot_label_escape(str)
-  str.gsub(/_/, "\\_").gsub(/\{/, "\\{").gsub(/\}/, "\\}")
+  ret = str.gsub(/_/, "\\\\\\_").gsub(/\{/, "\\{").gsub(/\}/, "\\}")
+  ret
 end
 
 def plot_distribution(config)
@@ -16,7 +17,7 @@ def plot_distribution(config)
   xrange_max = config[:xrange_max]
   xrange_min = config[:xrange_min] || 0
   title = gnuplot_label_escape(config[:title])
-  xlabel = config[:xlabel]
+  xlabel = gnuplot_label_escape(config[:xlabel])
   eps_file = config[:output]
   datafile = if config[:datafile]
                File.open(config[:datafile], "w")
@@ -321,6 +322,8 @@ def plot_scatter(config)
     end
   end
 
+  config[:size] ||= "0.9,0.7"
+
   xrange = if config[:xrange]
              "set xrange #{config[:xrange]}"
            else
@@ -366,7 +369,7 @@ def plot_scatter(config)
   script = <<EOS
 set term postscript enhanced color
 set output "#{rel_path(gpfile.path, config[:output])}"
-set size 0.9,0.7
+set size #{config[:size]}
 set title "#{gnuplot_label_escape(config[:title])}"
 set ylabel "#{gnuplot_label_escape(config[:ylabel])}"
 set xlabel "#{gnuplot_label_escape(config[:xlabel])}"
