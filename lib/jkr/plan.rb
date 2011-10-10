@@ -96,7 +96,7 @@ class Jkr
       end
 
       def short_desc(short_desc)
-        @plan.short_desc.gsub(/ /, '_').gsub(/\//, '!')
+        @plan.short_desc = short_desc.gsub(/ /, '_').gsub(/\//, '!')
       end
       
       def def_parameters(&proc)
