@@ -29,7 +29,7 @@ class Jkr
 
       @title = "no title"
       @desc = "no desc"
-      @short_desc = ""
+      @short_desc = nil
 
       @params = {}
       @vars = {}

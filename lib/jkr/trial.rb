@@ -24,7 +24,7 @@ class Jkr
 
     def self.run(env, plan)
       plan_suffix = File.basename(plan.file_path, ".plan")
-      plan_suffix += "_#{plan.short_desc}"
+      plan_suffix += "_#{plan.short_desc}" if plan.short_desc
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
       trials = self.make_trials(resultset_dir, plan)
 
