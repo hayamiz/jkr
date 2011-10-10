@@ -146,6 +146,16 @@ class Jkr
       }.last
     end
 
+    # Format of returned value
+    # [{
+    #    :time => <Time>,
+    #    :labels => [:cpu, :usr, :nice, :sys, :iowait, :irq, ...],
+    #    :data => [{:cpu => "all", :usr => 0.11, :nice => 0.00, ...],
+    #              {:cpu => 0, :usr => 0.12, :nice => 0.00, ...},
+    #               ...]
+    #  },
+    #  ...]
+    #
     def self.read_mpstat(io_or_filepath)
       hostname = `hostname`.strip
       
@@ -168,7 +178,14 @@ class Jkr
           rows = blockstr.lines.map(&:strip)
           header = rows.shift.split
           next if header.shift =~ /Average/
-          result[:labels] = header
+          result[:labels] = header.map do |label|
+            {
+              "CPU" => :cpu, "%usr" => :usr, "%user" => :user,
+              "%nice" => :nice, "%sys" => :sys, "%iowait" => :iowait,
+              "%irq" => :irq, "%soft" => :soft, "%steal" => :steal,
+              "%guest" => :guest, "%idle" => :idle
+            }[label] || label
+          end
           time = nil
           result[:data] = rows.map { |row|
             vals = row.split
@@ -190,13 +207,23 @@ class Jkr
             if vals.size != result[:labels].size
               raise RuntimeError.new("Invalid mpstat data")
             end
-            vals.map{|val|
-              begin
-                Float(val)
-              rescue ArgumentError
-                val
-              end
+
+            record = Hash.new
+            vals.each_with_index{|val, idx|
+              label = result[:labels][idx]
+              val = if val =~ /\A\d+\Z/
+                      val.to_i
+                    else
+                      begin
+                        Float(val)
+                      rescue ArgumentError
+                        val
+                      end
+                    end
+              record[label] = val
             }
+
+            record
           }
           result
         end
