@@ -373,6 +373,9 @@ EOS
 def result_file_name(basename)
   File.join(#{result_dir.inspect}, basename)
 end
+def rname(basename)
+  result_file_name(basename)
+end
 
 def result_file(basename, mode = "a+")
   path = result_file_name(basename)
@@ -430,6 +433,9 @@ def result_file_name(num, basename)
   end
   File.join(#{resultset_dir.inspect}, num, basename)
 end
+def rname(num, basename)
+  result_file_name(num, basename)
+end
 
 def result_file(num, basename, mode = "r")
   path = result_file_name(num, basename)
@@ -438,6 +444,9 @@ end
 
 def common_file_name(basename)
   File.join(#{resultset_dir.inspect}, basename)
+end
+def cname(basename)
+  common_file_name(basename)
 end
 
 def common_file(basename, mode = "r")

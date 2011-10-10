@@ -5,7 +5,11 @@ class Array
   end
 
   def avg()
-    self.sum.to_f / self.size
+    if self.empty?
+      nil
+    else
+      self.sum.to_f / self.size
+    end
   end
 
   def stdev()
