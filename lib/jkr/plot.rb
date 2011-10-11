@@ -317,8 +317,7 @@ end
 def plot_scatter(config)
   [:plot_data, :output, :title, :xlabel, :ylabel].each do |key|
     unless config.keys.include?(key)
-      $stderr.puts "key '#{key.to_s}' is required for time-series graph"
-      return
+      raise ArgumentError.new("key '#{key.to_s}' is required for scatter graph")
     end
   end
 
@@ -342,7 +341,7 @@ def plot_scatter(config)
 
   plot_stmt = "plot " + config[:plot_data].map {|plot_datum|
     unless plot_datum[:expression] ||
-        [:datafile, :using, :with].every?{|key| plot_datum[key]}
+        [:datafile, :using].every?{|key| plot_datum[key]}
       raise ArgumentError.new("key ('datafile', 'using', 'with') or 'expression' is required for a plot_datum")
     end
 
@@ -363,7 +362,13 @@ def plot_scatter(config)
     else
       title = "title '#{gnuplot_label_escape(plot_datum[:title])}'"
     end
-    "#{plot_target} with #{plot_datum[:with]} #{title} " + plot_datum[:other_options].to_s
+
+    if plot_datum[:with]
+      with = "with #{plot_datum[:with]}"
+    else
+      with = ""
+    end
+    "#{plot_target} #{with} #{title} " + plot_datum[:other_options].to_s
   }.join(", \\\n     ")
 
   script = <<EOS
