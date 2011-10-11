@@ -16,6 +16,7 @@ class Jkr
     attr_accessor :cleanup
     attr_accessor :routine
     attr_accessor :analysis
+    attr_accessor :param_filters
 
     attr_accessor :src
 
@@ -42,6 +43,7 @@ class Jkr
       @cleanup = lambda do |_|
         raise NotImplementedError.new("A cleanup of experiment '#{@title}' is not implemented")
       end
+      @param_filters = []
 
       @src = nil
 
@@ -122,11 +124,22 @@ class Jkr
       def parameter(arg = nil)
         if arg.is_a? Hash
           # set param
+          $stderr.puts("'parameter' is deprecated. use 'constant' instead.")
           @params.params.merge!(arg)
         else
           @params
         end
       end
+
+      def constant(arg = nil)
+        if arg.is_a? Hash
+          # set param
+          @params.params.merge!(arg)
+        else
+          raise ArgumentError.new
+        end
+      end
+
 
       def variable(arg = nil)
         if arg.is_a? Hash
@@ -134,6 +147,10 @@ class Jkr
         else
           @params
         end
+      end
+
+      def param_filter(&proc)
+        @plan.param_filters.push(proc)
       end
     end
   end

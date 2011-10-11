@@ -16,9 +16,15 @@ class Jkr
         }.flatten
       end
 
-      var_combs.map do |var_comb|
+      params_list = var_combs.map{|var_comb| plan.params.merge(var_comb)}
+
+      plan.param_filters.each do |filter|
+        params_list = params_list.select(&filter)
+      end
+
+      params_list.map do |params|
         result_dir = Utils.reserve_next_dir(resultset_dir)
-        Trial.new(result_dir, plan, plan.params.merge(var_comb))
+        Trial.new(result_dir, plan, params)
       end
     end
 
