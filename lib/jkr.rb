@@ -7,6 +7,8 @@ require 'jkr/trial'
 require 'jkr/analysis'
 require 'jkr/cpufreq'
 require 'jkr/cpu_usage'
+require 'jkr/sysinfo'
+require 'jkr/analytics'
 
 class Jkr
   VERSION = '0.0.1'
