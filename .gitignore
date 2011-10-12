@@ -8,3 +8,6 @@
 /bin/rspec
 /bin/sow
 /.bundle/config
+/bin/guard
+/bin/rake2thor
+/bin/thor
