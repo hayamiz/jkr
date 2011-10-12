@@ -15,6 +15,7 @@ class Jkr
     attr_accessor :prep
     attr_accessor :cleanup
     attr_accessor :routine
+    attr_accessor :routine_nr_run
     attr_accessor :analysis
     attr_accessor :param_filters
 
@@ -37,6 +38,7 @@ class Jkr
       @routine = lambda do |_|
         raise NotImplementedError.new("A routine of experiment '#{@title}' is not implemented")
       end
+      @routine_nr_run = 1
       @prep = lambda do |_|
         raise NotImplementedError.new("A prep of experiment '#{@title}' is not implemented")
       end
@@ -108,7 +110,10 @@ class Jkr
         @plan.vars.merge!(@params.vars)
       end
       
-      def def_routine(&proc)
+      def def_routine(options = {}, &proc)
+        if options[:nr_run]
+          @plan.routine_nr_run = options[:nr_run]
+        end
         @plan.routine = proc
       end
       def def_prep(&proc)

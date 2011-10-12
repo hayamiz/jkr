@@ -5,7 +5,6 @@ require 'jkr/utils'
 class Jkr
   class Trial
     attr_reader :params
-    
     def self.make_trials(resultset_dir, plan)
       var_combs = [{}]
       plan.vars.each do |key, vals|
@@ -21,6 +20,8 @@ class Jkr
       plan.param_filters.each do |filter|
         params_list = params_list.select(&filter)
       end
+
+      params_list = params_list * plan.routine_nr_run
 
       params_list.map do |params|
         result_dir = Utils.reserve_next_dir(resultset_dir)
