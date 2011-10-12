@@ -1,0 +1,10 @@
+/bin/autospec
+/Gemfile.lock
+/bin/htmldiff
+/bin/ldiff
+/bin/rake
+/bin/rdoc
+/bin/ri
+/bin/rspec
+/bin/sow
+/.bundle/config

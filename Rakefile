@@ -2,6 +2,9 @@
 
 require 'rubygems'
 require 'hoe'
+require 'rspec/core/rake_task'
+
+task :default => [:spec]
 
 Hoe.spec 'jkr' do
   developer('Yuto HAYAMIZU', 'y.hayamizu@gmail.com')
