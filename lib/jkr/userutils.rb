@@ -313,5 +313,68 @@ class Jkr
       end
       result
     end
+
+    class << self
+      def read_top(io_or_filepath, opt = {}, &proc)
+        opt[:start_time] ||= Time.now
+
+        def parse_block(block, opt)
+          y = opt[:start_time].year
+          m = opt[:start_time].month
+          d = opt[:start_time].day
+
+          lines = block.lines.map(&:strip)
+          head_line = lines.shift
+
+          unless head_line =~ /(\d{2}):(\d{2}):(\d{2})/
+            raise ArgumentError.new("Invalid top(3) data")
+          end
+          time = Time.new(y, m, d, $~[1].to_i, $~[2].to_i, $~[3].to_i)
+
+          while ! (lines[0] =~ /\APID/)
+            line = lines.shift
+          end
+          labels = lines.shift.split.map do |key|
+            {"PID" => :pid, "USER" => :user, "PR" => :pr, "NI" => :ni,
+              "VIRT" => :virt, "RES" => :res, "SHR" => :shr, "S" => :s,
+              "%CPU" => :cpu, "%MEM" => :mem, "TIME+" => :time_plus,
+              "COMMAND" => :command}[key] || key
+          end
+
+          lines = lines.select{|line| ! line.empty?}
+          if opt[:top_k]
+            lines = lines.first(opt[:top_k])
+          end
+          lines.map do |line|
+            record = Hash.new
+            record[:time] = time
+            line.split.each_with_index do |val, idx|
+              key = labels[idx]
+              if val =~ /\A(\d+)([mg]?)\Z/
+                record[key] = Integer($~[1])
+                if ! $~[2].empty?
+                  record[key] *= {'g' => 2**20, 'm' => 2**10}[$~[2]]
+                end
+              elsif val =~ /\A(\d+\.\d+)([mg]?)\Z/
+                record[key] = Float($~[1])
+                if ! $~[2].empty?
+                  record[key] *= {'g' => 2**20, 'm' => 2**10}[$~[2]]
+                end
+              elsif val =~ /\A(\d+):(\d+\.\d+)\Z/
+                record[key] = Integer($~[1])*60 + Float($~[2])
+              else
+                record[key] = val
+              end
+            end
+
+            record
+          end
+        end
+
+        File.open(io_or_filepath, "r").read.split("\n\n\n").map do |block|
+          parse_block(block, opt)
+        end
+      end
+    end
   end
 end
