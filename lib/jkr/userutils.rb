@@ -329,7 +329,7 @@ class Jkr
           unless head_line =~ /(\d{2}):(\d{2}):(\d{2})/
             raise ArgumentError.new("Invalid top(3) data")
           end
-          time = Time.new(y, m, d, $~[1].to_i, $~[2].to_i, $~[3].to_i)
+          time = Time.local(y, m, d, $~[1].to_i, $~[2].to_i, $~[3].to_i)
 
           while ! (lines[0] =~ /\APID/)
             line = lines.shift
