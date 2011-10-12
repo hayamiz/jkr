@@ -318,6 +318,24 @@ class Jkr
       def read_top(io_or_filepath, opt = {}, &proc)
         opt[:start_time] ||= Time.now
 
+        def block_filter(filter, block)
+          if filter.is_a? Symbol
+            filters = {
+              :kernel_process => /\A(kworker|ksoftirqd|migration|watchdog|kintegrityd|kblockd|events|kondemand|aio|crypto|ata|kmpathd|kconservative|rpciod|xfslogd|xfsdatad|xfsconvertd)\//
+            }
+            raise ArgumentError.new("Invalid filter: #{filter.inspect}") unless filters[filter]
+            filter = filters[filter]
+          elsif filter.is_a? Regexp
+            filter = filter
+          else
+            raise ArgumentError.new("Invalid filter: #{filter.inspect}")
+          end
+
+          block = block.select do |record|
+            ! (record[:command] =~ filter)
+          end
+        end
+
         def parse_block(block, opt)
           y = opt[:start_time].year
           m = opt[:start_time].month
@@ -342,10 +360,7 @@ class Jkr
           end
 
           lines = lines.select{|line| ! line.empty?}
-          if opt[:top_k]
-            lines = lines.first(opt[:top_k])
-          end
-          lines.map do |line|
+          records = lines.map do |line|
             record = Hash.new
             record[:time] = time
             line.split.each_with_index do |val, idx|
@@ -369,6 +384,16 @@ class Jkr
 
             record
           end
+
+          if opt[:filter]
+            records = block_filter(opt[:filter], records)
+          end
+
+          if opt[:top_k]
+            records = records.first(opt[:top_k])
+          end
+
+          records
         end
 
         File.open(io_or_filepath, "r").read.split("\n\n\n").map do |block|

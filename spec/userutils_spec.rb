@@ -66,5 +66,14 @@ describe Jkr::DataUtils do
         block.size.should == 10
       end
     end
+
+    describe ":filter option" do
+      it "should have buildin :kernel_process" do
+        top_data = Jkr::DataUtils.read_top(@top_log,
+                                           :filter => :kernel_process)
+        block = top_data.first
+        block.size.should == 151
+      end
+    end
   end
 end
