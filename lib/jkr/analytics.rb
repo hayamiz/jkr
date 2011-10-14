@@ -12,7 +12,7 @@ class Jkr
         value
       end
 
-      def each_group(results, variable)
+      def each_group(results, variable, opt = {})
         # extract parameters given as variables
         param_keys = results.first[:params].keys.select do |param_key|
           results.map do |result|
@@ -31,6 +31,11 @@ class Jkr
         end
         param_keys.delete(:trial)
         param_keys.delete(variable)
+        if opt[:except]
+          opt[:except].each do |key|
+            param_keys.delete(key)
+          end
+        end
 
         results.group_by do |result|
           param_keys.map{|key| result[:params][key]}
