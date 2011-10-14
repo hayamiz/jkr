@@ -36,13 +36,15 @@ Available commands: #{self.jkr_commands.join(', ')}
 EOS
 
     @options[:directory] = Dir.pwd
+    @options[:jkr_directory] = File.join(@options[:directory], "jkr")
+
     @optparser.on('-C', '--directory DIR',
                "Change to directory DIR before reading jkr config files."
                ) do |directory|
       @options[:directory] = directory
+      @options[:jkr_directory] = File.join(@options[:directory], "jkr")
     end
 
-    @options[:jkr_directory] = File.join(@options[:directory], "jkr")
     @optparser.on('-f', '--jkr-directory DIR',
                   "Jkr specification file."
                   ) do |jkr_directory|
@@ -58,12 +60,11 @@ EOS
   def initialize()
     @options = Hash.new
     self.setup_optparser()
-    @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
   end
 
   def dispatch(argv)
     self.parse_args(argv) # argv updated destructively
-    
+
     if argv.empty?
       argv = ["run"]
     end
@@ -76,15 +77,19 @@ EOS
     end
 
     self.send("#{command}_cmd", argv)
+    true
   end
 
   ## Command definitions
 
   def analyze_cmd(argv)
+    @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
+
     argv.each do |arg|
       Jkr::Analysis.analyze(@jkr_env, arg)
     end
   end
+
   def analyze_cmd_help()
      {
        :summary => "analyze results",
@@ -93,6 +98,8 @@ EOS
    end
 
    def list_cmd(argv)
+     @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
+
      puts "Existing plans:"
      puts
      plans = @jkr_env.plans.map do |plan_file_path|
@@ -113,6 +120,8 @@ EOS
    end
 
    def run_cmd(argv)
+     @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
+
      @jkr_env.plans.each do |plan_file_path|
        if File.basename(plan_file_path) == argv.first + ".plan"
          plan = Jkr::Plan.new(@jkr_env, plan_file_path)
@@ -120,6 +129,7 @@ EOS
        end
      end
    end
+
    def run_cmd_help()
      {
        :summary => "run experiments",
@@ -127,40 +137,40 @@ EOS
      }
    end
 
-   def install_cmd(argv)
+   def init_cmd(argv)
      jkr_dir = File.join(@options[:directory], "jkr")
      result_dir = File.join(@options[:directory], "jkr", "result")
      plan_dir = File.join(@options[:directory], "jkr", "plan")
-     [jkr_dir, result_dir, plan_dir].each{|dir| FileUtils.mkdir(dir) }
-     File.open(File.join(plan_dir, "sample.plan"), "w") do |file|
+     script_dir = File.join(@options[:directory], "jkr", "script")
+     queue_dir = File.join(@options[:directory], "jkr", "queue")
+     [jkr_dir,
+      result_dir,
+      plan_dir,
+      script_dir,
+      queue_dir].each{|dir| FileUtils.mkdir(dir) }
+     File.open(File.join(plan_dir, "example.plan.sample"), "w") do |file|
        file.puts <<EOSS
  # -*- mode: ruby -*-
 
- title "Sample experiment plan"
- description <<EOS
- This is a sample experiment plan specification file.
- EOS
+title "example"
+description "this is an example."
 
- # Discard this file after the experiments conducted.
- discard_on_finish
+def_parameters do
+  constant :foo => 123
+end
 
- def_experiment_plan do |p|
-   # 'p.variable' for variables
-   # 'p.param' for static parameters
+def_prep do |plan|
+end
 
-   p.variable :num_xxx => 1..10
-   p.param :use_yyy => false
+def_routine do |plan, params|
+  # do nothing
+end
 
-   if p.param[:use_yyy]
-     p.param[:yyy_zzz] = "foo"
-   else
-     p.param[:yyy_zzz] = "bar"
-   end
- end
+def_cleanup do |plan|
+end
 
- def_execution do |params|
-   puts "hello world, #\{params.num_xxx\}, #\{params[:num_xxx]\}"
- end
+def_analysis do |plan|
+end
 EOSS
      end
    end
@@ -204,7 +214,7 @@ EOSS
 end
 
 def main(argv)
-  JkrCmd.new.dispatch(argv)
+  exit(JkrCmd.new.dispatch(argv))
 end
 
 if __FILE__ == $0 || $0 =~ /ruby-prof$/

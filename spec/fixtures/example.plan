@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+
+title "example"
+description "this is an example."
+
+def_parameters do
+  constant :foo => 123
+end
+
+def_prep do |plan|
+
+end
+
+def_routine do |plan, params|
+  # do nothing
+end
+
+def_cleanup do |plan|
+
+end
+
+def_analysis do |plan|
+
+end

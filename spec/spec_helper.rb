@@ -3,6 +3,7 @@
 $LOAD_PATH << File.expand_path('../../lib', __FILE__)
 FIXTURE_DIR = File.expand_path('../fixtures', __FILE__)
 
+require 'tmpdir'
 require 'rubygems'
 require 'jkr'
 

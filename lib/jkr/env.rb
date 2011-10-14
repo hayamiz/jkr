@@ -12,6 +12,7 @@ class Jkr
     PLAN_DIR = "plan"
     RESULT_DIR = "result"
     SCRIPT_DIR = "script"
+    QUEUE_DIR = "queue"
 
     def initialize(working_dir = Dir.pwd, jkr_dir = File.join(Dir.pwd, "jkr"))
       @jkr_dir = jkr_dir
@@ -19,10 +20,15 @@ class Jkr
       @jkr_plan_dir = File.join(@jkr_dir, PLAN_DIR)
       @jkr_result_dir = File.join(@jkr_dir, RESULT_DIR)
       @jkr_script_dir = File.join(@jkr_dir, SCRIPT_DIR)
-      
-      [@jkr_dir, @jkr_result_dir, @jkr_plan_dir, @jkr_script_dir].each do |dir_path|
+      @jkr_queue_dir = File.join(@jkr_dir, QUEUE_DIR)
+
+      [@jkr_dir,
+       @jkr_result_dir,
+       @jkr_plan_dir,
+       @jkr_script_dir,
+       @jkr_queue_dir].each do |dir_path|
         unless Dir.exists?(dir_path)
-          raise InvalidArgument.new("Directory #{dir_path} not found")
+          raise ArgumentError.new("Directory #{dir_path} not found")
         end
       end
     end
