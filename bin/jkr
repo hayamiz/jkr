@@ -13,6 +13,16 @@ def identity
 end
 
 class JkrCmd
+  class DirLock
+    def self.lock(dir_path)
+      File.open(File.expand_path('.lock', dir_path),
+                File::RDWR | File::CREAT) do |f|
+        f.flock(File::LOCK_EX)
+        yield
+      end
+    end
+  end
+
   def jkr_commands()
     self.methods.map{|method_sym|
       if method_sym.to_s =~ /^([a-z_-]+)_cmd$/
@@ -122,9 +132,37 @@ EOS
    def run_cmd(argv)
      @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
 
-     @jkr_env.plans.each do |plan_file_path|
-       if File.basename(plan_file_path) == argv.first + ".plan"
-         plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+     if ! argv.empty?
+       @jkr_env.plans.each do |plan_file_path|
+         if File.basename(plan_file_path) == argv.first + ".plan"
+           plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+           Jkr::Trial.run(@jkr_env, plan)
+         end
+       end
+     end
+
+     # run queued plans
+     process_queue = true
+     while process_queue
+       Dir.mktmpdir do |tmpdir|
+         plan_file = nil
+
+         DirLock.lock(@jkr_env.jkr_queue_dir) do
+           queued_plans = Dir.glob(File.expand_path('*.plan',
+                                                    @jkr_env.jkr_queue_dir))
+           if queued_plans.empty?
+             process_queue = false
+             break
+           end
+
+           queued_plan = queued_plans.sort.first
+           plan_file = File.expand_path(File.basename(queued_plan).gsub(/\A\d{5}\./, ''), tmpdir)
+           FileUtils.copy(queued_plan, plan_file)
+           FileUtils.remove(queued_plan)
+         end
+         break unless process_queue
+
+         plan = Jkr::Plan.new(@jkr_env, plan_file)
          Jkr::Trial.run(@jkr_env, plan)
        end
      end
@@ -133,6 +171,36 @@ EOS
    def run_cmd_help()
      {
        :summary => "run experiments",
+       :desc => ""
+     }
+   end
+
+   def queue_cmd(argv)
+     @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
+
+     DirLock.lock(@jkr_env.jkr_queue_dir) do
+       queue_ids = Dir.glob(File.expand_path('*.plan', @jkr_env.jkr_queue_dir)).map do |plan_file|
+         if File.basename(plan_file) =~ /\A(\d{5})\./
+           $~[1].to_i
+         else
+           nil
+         end
+       end.compact
+       next_queue_id = ([-1] + queue_ids).max + 1
+
+       @jkr_env.plans.each do |plan_file_path|
+         if File.basename(plan_file_path) == argv.first + ".plan"
+           FileUtils.copy(plan_file_path,
+                          File.expand_path(sprintf("%05d.%s", next_queue_id, File.basename(plan_file_path)),
+                                           @jkr_env.jkr_queue_dir))
+         end
+       end
+     end
+   end
+
+   def queue_cmd_help()
+     {
+       :summary => "queue experiment plan",
        :desc => ""
      }
    end

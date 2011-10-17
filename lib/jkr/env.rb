@@ -8,6 +8,7 @@ class Jkr
     attr_reader :jkr_result_dir
     attr_reader :jkr_plan_dir
     attr_reader :jkr_script_dir
+    attr_reader :jkr_queue_dir
     
     PLAN_DIR = "plan"
     RESULT_DIR = "result"
