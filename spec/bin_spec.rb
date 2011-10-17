@@ -103,6 +103,8 @@ describe JkrCmd do
 
             dir = Dir.glob('jkr/result/*').first
             File.basename(dir).should == "00000example"
+            File.exists?('jkr/result/00000example/00000/output.log').should be_true
+            File.open('jkr/result/00000example/00000/output.log').read.should include("hello world")
           end
         end
 
@@ -115,12 +117,12 @@ describe JkrCmd do
             jkr("queue", "example").should be_true
 
             Dir.glob('jkr/queue/*').size.should == 1
-            dir = Dir.glob('jkr/queue/*').first
+            dir = Dir.glob('jkr/queue/*').sort.first
             File.basename(dir).should == "00000.example.plan"
 
             jkr("queue", "example").should be_true
             Dir.glob('jkr/queue/*').size.should == 2
-            dir = Dir.glob('jkr/queue/*')[1]
+            dir = Dir.glob('jkr/queue/*').sort[1]
             File.basename(dir).should == "00001.example.plan"
           end
 
@@ -136,6 +138,27 @@ describe JkrCmd do
                   jkr("run").should be_true
                 end.should change(DirFiles.new('jkr/queue'), :size).by(-2)
               end.should change(DirFiles.new('jkr/result'), :size).by(2)
+
+              File.exists?('jkr/result/00000example/example.plan').should be_true
+              File.exists?('jkr/result/00001example/example.plan').should be_true
+
+              File.read('jkr/result/00000example/00000/output.log').should include('hello world')
+              File.read('jkr/result/00001example/00000/output.log').should include('hello world')
+            end
+          end
+
+          context "under high-contention" do
+            it "should queue 1000 plans correctly" do
+              lambda do
+                threads = (1..10).map do
+                  Thread.new do
+                    100.times do
+                      jkr("queue", "example")
+                    end
+                  end
+                end
+                threads.map(&:join)
+              end.should change(DirFiles.new('jkr/queue'), :size).by(1000)
             end
           end
         end

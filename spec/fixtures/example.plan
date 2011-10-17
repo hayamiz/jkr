@@ -12,7 +12,9 @@ def_prep do |plan|
 end
 
 def_routine do |plan, params|
-  # do nothing
+  File.open(rname("output.log"), "w") do |file|
+    file.puts "hello world"
+  end
 end
 
 def_cleanup do |plan|
