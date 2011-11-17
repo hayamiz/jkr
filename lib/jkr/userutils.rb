@@ -180,7 +180,7 @@ class Jkr
           next if header.shift =~ /Average/
           result[:labels] = header.map do |label|
             {
-              "CPU" => :cpu, "%usr" => :usr, "%user" => :user,
+              "CPU" => :cpu, "%usr" => :usr, "%user" => :usr,
               "%nice" => :nice, "%sys" => :sys, "%iowait" => :iowait,
               "%irq" => :irq, "%soft" => :soft, "%steal" => :steal,
               "%guest" => :guest, "%idle" => :idle
