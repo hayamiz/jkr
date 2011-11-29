@@ -333,7 +333,7 @@ EOS
 end
 
 def plot_scatter(config)
-  [:plot_data, :output, :title, :xlabel, :ylabel].each do |key|
+  [:plot_data, :output, :xlabel, :ylabel].each do |key|
     unless config.keys.include?(key)
       raise ArgumentError.new("key '#{key.to_s}' is required for scatter graph")
     end
@@ -389,11 +389,16 @@ def plot_scatter(config)
     "#{plot_target} #{with} #{title} " + plot_datum[:other_options].to_s
   }.join(", \\\n     ")
 
+  title_stmt = "unset title"
+  if config[:title]
+    title_stmt = "set title \"#{gnuplot_label_escape(config[:title])}\""
+  end
+
   script = <<EOS
 set term postscript enhanced color
 set output "#{rel_path(gpfile.path, config[:output])}"
 set size #{config[:size]}
-set title "#{gnuplot_label_escape(config[:title])}"
+#{title_stmt}
 set ylabel "#{gnuplot_label_escape(config[:ylabel])}"
 set xlabel "#{gnuplot_label_escape(config[:xlabel])}"
 set rmargin 10
