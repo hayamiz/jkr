@@ -222,6 +222,7 @@ EOS
 
 title "example"
 description "this is an example."
+short_desc ""
 
 def_parameters do
   constant :foo => 123
