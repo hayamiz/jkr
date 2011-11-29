@@ -15,9 +15,10 @@ class Jkr
       def each_group(results, variable, opt = {})
         # extract parameters given as variables
         param_keys = results.first[:params].keys.select do |param_key|
-          results.map do |result|
+          values = results.map do |result|
             normalize_param(param_key, result[:params][param_key])
-          end.sort.uniq.size > 1
+          end
+          values.all?{|val| ! val.nil?} && values.sort.uniq.size > 1
         end
 
         unless param_keys.include?(variable)
@@ -38,7 +39,7 @@ class Jkr
         end
 
         results.group_by do |result|
-          param_keys.map{|key| result[:params][key]}
+          param_keys.map{|key| normalize_param(key, result[:params][key])}
         end.sort_by do |group_param, group|
           group_param
         end.each do |group_param, group|
