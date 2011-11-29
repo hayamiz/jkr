@@ -16,8 +16,8 @@ def plot_distribution(config)
   dataset = config[:dataset]
   xrange_max = config[:xrange_max]
   xrange_min = config[:xrange_min] || 0
-  title = gnuplot_label_escape(config[:title])
-  xlabel = gnuplot_label_escape(config[:xlabel])
+  title = config[:title]
+  xlabel = config[:xlabel]
   eps_file = config[:output]
   datafile = if config[:datafile]
                File.open(config[:datafile], "w")
@@ -41,6 +41,8 @@ def plot_distribution(config)
     next if data.empty?
     hist = Array.new
     avg = data.inject(&:+) / data.size.to_f
+    sterr = data.sterr
+    stdev = data.stdev
     n90th_idx = (data.size * 0.9).to_i
     n90percent = data.sort[n90th_idx]
     xrange_max_local = [xrange_max_local, xrange_max || n90percent * 4].max
@@ -75,27 +77,43 @@ def plot_distribution(config)
 
 # index data_idx+1
     datafile.puts "#{avg}\t0"
-    datafile.puts "#{avg}\t#{hist.max}"
+    datafile.puts "#{avg}\t#{hist.max * 1.2}"
     datafile.puts
     datafile.puts
 
-# index data_idx+1
+# index data_idx+2
     datafile.puts "#{n90percent}\t0"
-    datafile.puts "#{n90percent}\t#{hist.max}"
+    datafile.puts "#{n90percent}\t#{hist.max * 1.2}"
     datafile.puts
+    datafile.puts
+
+# index data_idx+3
+    datafile.puts "#{avg-sterr * 3}\t0"
+    datafile.puts "#{avg-sterr * 3}\t#{hist.max * 1.2}"
+    datafile.puts
+    datafile.puts
+# index data_idx+4
+    datafile.puts "#{avg+sterr * 3}\t0"
+    datafile.puts "#{avg+sterr * 3}\t#{hist.max * 1.2}"
     datafile.puts
 
     plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with linespoints title '%s'",
                            datafile_path, data_idx, data_idx, tx_type))
     if config[:show_avgline]
-      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with linespoints title '%s(avg)'",
+      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with lines lc 1 lt 2 lw 3 title '%s(avg)'",
                              datafile_path, data_idx+1, data_idx+1, tx_type))
     end
     if config[:show_90pline]
-      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with linespoints title '%s(90%%-th)'",
+      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with lines lc 2 lt 2 lw 3 title '%s(90%%-th)'",
                              datafile_path, data_idx+2, data_idx+2, tx_type))
     end
-    data_idx += 3
+    if config[:show_confinterval]
+      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with lines lc 3 lt 3 lw 3 title '%s(std err)'",
+                             datafile_path, data_idx+3, data_idx+3, tx_type))
+      plot_stmt.push(sprintf("'%s' index %d:%d using 1:2 with lines lc 3 lt 3 lw 3 title '%s(std err)'",
+                             datafile_path, data_idx+4, data_idx+4, tx_type))
+    end
+    data_idx += 5
   end
 
   datafile.fsync
@@ -108,7 +126,7 @@ set output "#{rel_path(gpfile.path, eps_file)}"
 set size 0.9,0.6
 set title "#{gnuplot_label_escape(title)}"
 set ylabel "Frequency"
-set xlabel "#{xlabel}"
+set xlabel "#{gnuplot_label_escape(xlabel)}"
 set xrange [#{xrange_min}:#{xrange_max_local}]
 #{config[:other_options]}
 #{plot_stmt}
