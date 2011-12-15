@@ -248,7 +248,7 @@ class Jkr
       self.read_blockseq(io_or_filepath) do |blockstr|
         if blockstr =~ sysname_regex
           # the first line
-          if blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})$/
+          if blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})/
             y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
             date = Date.new(2000 + y, m, d)
             next
@@ -257,9 +257,13 @@ class Jkr
           rows = blockstr.lines.map(&:strip)
           timestamp = rows.shift
           time = nil
+          unless date
+            raise RuntimeError.new("Cannot detect date: #{io_or_filepath}")
+          end
+
           if timestamp =~ /(\d{2})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/
             y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
-            time = Time.local(y, m, d, $~[4].to_i, $~[5].to_i, $~[6].to_i)
+            time = Time.local(date.year, date.month, date.day, $~[4].to_i, $~[5].to_i, $~[6].to_i)
           elsif date && timestamp =~ /Time: (\d{2}):(\d{2}):(\d{2})/
             time = Time.local(date.year, date.month, date.day,
                               $~[1].to_i, $~[2].to_i, $~[3].to_i)
