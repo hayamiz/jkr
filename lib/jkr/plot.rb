@@ -416,3 +416,205 @@ EOS
   end
   gpfile.close
 end
+
+def plot_mpstat_data(mpstat_data, option)
+  option[:dir] ||= "mpstat"
+  option[:start_time] ||= mpstat_data.first[:time]
+  option[:end_time] ||= mpstat_data[-1][:time]
+
+  if ! Dir.exists?(option[:dir])
+    FileUtils.mkdir_p(option[:dir])
+  end
+
+  datafile = File.open(File.join(option[:dir],
+                                 "mpstat.tsv"),
+                       "w")
+
+  start_time = option[:start_time]
+  end_time = option[:end_time]
+
+  data_idx = 0
+  nr_cpu = mpstat_data.first[:data].size - 1
+  (nr_cpu + 1).times do |cpu_idx|
+    scale = 1.0
+    if cpu_idx < nr_cpu
+      label = cpu_idx.to_s
+    else
+      label = "ALL"
+      scale = nr_cpu.to_f
+    end
+
+    datafile.puts("# cpu#{label}")
+    mpstat_data.each do |rec|
+      t = rec[:time] - start_time
+
+      if cpu_idx < nr_cpu
+        data = rec[:data].find{|x| x[:cpu] == cpu_idx}
+      else
+        data = rec[:data].find{|x| x[:cpu] == "all"}
+      end
+      datafile.puts([t,
+                     data[:usr] * scale,
+                     data[:nice] * scale,
+                     data[:sys] * scale,
+                     data[:iowait] * scale,
+                     data[:irq] * scale,
+                     data[:soft] * scale,
+                     data[:steal] * scale,
+                     data[:idle] * scale].map(&:to_s).join("\t"))
+    end
+    datafile.puts("\n\n")
+    datafile.fsync
+
+    plot_scatter(:output => File.join(option[:dir],
+                                      "cpu#{label}.eps"),
+                 :gpfile => File.join(option[:dir],
+                                      "gp_cpu#{label}.gp"),
+                 :title => nil,
+                 :xlabel => "elapsed time [sec]",
+                 :ylabel => "CPU usage [%]",
+                 :xrange => "[0:#{end_time - start_time}]",
+                 :yrange => "[0:#{105 * scale}]",
+                 :plot_data => [{
+                                  :title => "%usr",
+                                  :using => "1:2",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%nice",
+                                  :using => "1:($2+$3)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%sys",
+                                  :using => "1:($2+$3+$4)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%iowait",
+                                  :using => "1:($2+$3+$4+$5)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%irq",
+                                  :using => "1:($2+$3+$4+$5+$6)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%soft",
+                                  :using => "1:($2+$3+$4+$5+$6+$7)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                },
+                                {
+                                  :title => "%steal",
+                                  :using => "1:($2+$3+$4+$5+$6+$7+$8)",
+                                  :index => "#{data_idx}:#{data_idx}",
+                                  :with => "filledcurve x1",
+                                  :datafile => datafile.path
+                                }].reverse,
+                 :size => "0.9,0.9",
+                 :other_options => <<EOS
+set rmargin 3
+set lmargin 5
+set key below
+EOS
+                 )
+
+    data_idx += 1
+  end
+end
+
+def plot_io_pgr_data(pgr_data, option)
+  option[:dir] ||= "io_pgr"
+  option[:start_time] ||= pgr_data.first["time"]
+  option[:end_time] ||= pgr_data[-1]["time"]
+
+  if ! Dir.exists?(option[:dir])
+    FileUtils.mkdir_p(option[:dir])
+  end
+
+  start_time = option[:start_time]
+  end_time = option[:end_time]
+
+  datafile = File.open(File.join(option[:dir],
+                                 "io_pgr.tsv"),
+                       "w")
+  devices = pgr_data.first.keys.select do |key|
+    key != "total" && pgr_data.first[key].is_a?(Hash)
+  end
+
+  devices.each do |device|
+    do_read = false
+    do_write = false
+    unless pgr_data.all?{|rec| rec[device]['r/s'] < 0.1}
+      do_read = true
+    end
+    unless pgr_data.all?{|rec| rec[device]['w/s'] < 0.1}
+      do_read = true
+    end
+
+    if  do_read == false && do_write == false
+      $stderr.puts("#{device} performs no I/O")
+      next
+    end
+
+    datafile.puts("# #{device}")
+    pgr_data.each do |rec|
+      datafile.puts([rec["time"] - start_time,
+                     rec[device]['r/s'],
+                     rec[device]['w/s'],
+                    ].map(&:to_s).join("\t"))
+    end
+    datafile.puts("\n\n")
+    datafile.fsync
+
+    plot_data = []
+    if do_read
+      plot_data.push({
+                       :title => "read",
+                       :datafile => datafile.path,
+                       :using => "1:2",
+                       :index => "0:0",
+                       :with => "lines"
+                     })
+    end
+    if do_write
+      plot_data.push({
+                       :title => "write",
+                       :datafile => datafile.path,
+                       :using => "1:3",
+                       :index => "0:0",
+                       :with => "lines"
+                     })
+    end
+
+    plot_scatter(:output => File.join(option[:dir],
+                                      device + ".eps"),
+                 :gpfile => File.join(option[:dir],
+                                      "gp_" + device + ".gp"),
+                 :xlabel => "elapsed time [sec]",
+                 :ylabel => "IOPS",
+                 :xrange => "[0:#{end_time - start_time}]",
+                 :yrange => "[0:]",
+                 :title => "IO performance",
+                 :plot_data => plot_data,
+                 :other_options => <<EOS
+set rmargin 3
+set lmargin 10
+set key below
+EOS
+                 )
+  end
+end
