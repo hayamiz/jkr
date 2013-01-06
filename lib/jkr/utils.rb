@@ -363,6 +363,9 @@ class Jkr
       plan.routine.binding.eval <<EOS
 undef result_file
 undef result_file_name
+undef rname
+undef common_file_name
+undef cname
 undef touch_result_file
 undef with_result_file
 EOS
@@ -380,6 +383,13 @@ end
 def result_file(basename, mode = "a+")
   path = result_file_name(basename)
   File.open(path, mode)
+end
+
+def common_file_name(basename)
+  File.join(File.dirname(#{result_dir.inspect}), basename)
+end
+def cname(basename)
+  result_file_name(basename)
 end
 
 def touch_result_file(basename, options = {})
