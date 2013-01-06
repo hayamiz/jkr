@@ -33,6 +33,7 @@ class Jkr
       plan_suffix = File.basename(plan.file_path, ".plan")
       plan_suffix += "_#{plan.short_desc}" if plan.short_desc
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
+      plan.resultset_dir = resultset_dir
       trials = self.make_trials(resultset_dir, plan)
 
       FileUtils.copy_file(plan.file_path,

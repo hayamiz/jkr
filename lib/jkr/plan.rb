@@ -10,7 +10,9 @@ class Jkr
     
     attr_accessor :params
     attr_accessor :vars
-  
+
+    attr_accessor :resultset_dir
+
     # Proc's
     attr_accessor :prep
     attr_accessor :cleanup
