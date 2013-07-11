@@ -394,8 +394,15 @@ def plot_scatter(config)
     title_stmt = "set title \"#{gnuplot_label_escape(config[:title])}\""
   end
 
+  case config[:output]
+  when /\.svg\Z/
+    terminal = 'svg'
+  else
+    terminal = 'postscript enhanced color'
+  end
+
   script = <<EOS
-set term postscript enhanced color
+set term #{terminal}
 set output "#{rel_path(gpfile.path, config[:output])}"
 set size #{config[:size]}
 #{title_stmt}
