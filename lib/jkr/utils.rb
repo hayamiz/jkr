@@ -348,13 +348,8 @@ class Jkr
     end
 
     def use_script(name)
-      name = name.to_s
-      name = name + ".rb" unless name =~ /\.rb$/
-      dir = @plan.jkr_env.jkr_script_dir
-      path = File.join(dir, name)
-      script = File.open(path, "r").read
-      self.instance_eval(script, path, 1)
-      true
+      $LOAD_PATH.push(@plan.jkr_env.jkr_script_dir)
+      require name.to_s
     end
   end
 
