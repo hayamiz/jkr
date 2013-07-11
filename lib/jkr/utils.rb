@@ -368,6 +368,7 @@ undef common_file_name
 undef cname
 undef touch_result_file
 undef with_result_file
+undef send_mail
 EOS
     end
 
@@ -409,6 +410,13 @@ def with_result_file(basename, mode = "a+")
   file.close
   raise err if err
   file.path
+end
+
+def send_mail(subject, addrs, body, files = [])
+  attach_option = files.map{|file| "-a \#{file}"}.join(" ")
+  IO.popen("mutt \#{addrs.join(' ')} -s \#{subject.inspect} \#{attach_option}", "w+") do |io|
+    io.puts body
+  end
 end
 EOS
       plan.routine.binding.eval(src, __FILE__, line)
