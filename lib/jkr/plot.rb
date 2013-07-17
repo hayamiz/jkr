@@ -339,8 +339,6 @@ def plot_scatter(config)
     end
   end
 
-  config[:size] ||= "0.9,0.7"
-
   xrange = if config[:xrange]
              "set xrange #{config[:xrange]}"
            else
@@ -404,7 +402,7 @@ def plot_scatter(config)
   script = <<EOS
 set term #{terminal}
 set output "#{rel_path(gpfile.path, config[:output])}"
-set size #{config[:size]}
+#{if config[:size]; then "set size " + config[:size]; else; ""; end}
 #{title_stmt}
 set ylabel "#{gnuplot_label_escape(config[:ylabel])}"
 set xlabel "#{gnuplot_label_escape(config[:xlabel])}"
