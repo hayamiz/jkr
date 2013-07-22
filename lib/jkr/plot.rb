@@ -339,8 +339,6 @@ def plot_scatter(config)
     end
   end
 
-  config[:size] ||= "0.9,0.7"
-
   xrange = if config[:xrange]
              "set xrange #{config[:xrange]}"
            else
@@ -394,10 +392,17 @@ def plot_scatter(config)
     title_stmt = "set title \"#{gnuplot_label_escape(config[:title])}\""
   end
 
+  case config[:output]
+  when /\.svg\Z/
+    terminal = 'svg'
+  else
+    terminal = 'postscript enhanced color'
+  end
+
   script = <<EOS
-set term postscript enhanced color
+set term #{terminal}
 set output "#{rel_path(gpfile.path, config[:output])}"
-set size #{config[:size]}
+#{if config[:size]; then "set size " + config[:size]; else; ""; end}
 #{title_stmt}
 set ylabel "#{gnuplot_label_escape(config[:ylabel])}"
 set xlabel "#{gnuplot_label_escape(config[:xlabel])}"
@@ -551,17 +556,16 @@ def plot_io_pgr_data(pgr_data, option)
   datafile = File.open(File.join(option[:dir],
                                  "io_pgr.tsv"),
                        "w")
-  devices = pgr_data.first.keys.select do |key|
-    key != "total" && pgr_data.first[key].is_a?(Hash)
-  end
+  devices = pgr_data.first["ioinfo"]["devices"]
 
+  idx = 0
   devices.each do |device|
     do_read = false
     do_write = false
-    unless pgr_data.all?{|rec| rec[device]['r/s'] < 0.1}
+    unless pgr_data.all?{|rec| rec["ioinfo"][device]['r/s'] < 0.1}
       do_read = true
     end
-    unless pgr_data.all?{|rec| rec[device]['w/s'] < 0.1}
+    unless pgr_data.all?{|rec| rec["ioinfo"][device]['w/s'] < 0.1}
       do_read = true
     end
 
@@ -573,8 +577,8 @@ def plot_io_pgr_data(pgr_data, option)
     datafile.puts("# #{device}")
     pgr_data.each do |rec|
       datafile.puts([rec["time"] - start_time,
-                     rec[device]['r/s'],
-                     rec[device]['w/s'],
+                     rec["ioinfo"][device]['r/s'],
+                     rec["ioinfo"][device]['w/s'],
                     ].map(&:to_s).join("\t"))
     end
     datafile.puts("\n\n")
@@ -586,7 +590,7 @@ def plot_io_pgr_data(pgr_data, option)
                        :title => "read",
                        :datafile => datafile.path,
                        :using => "1:2",
-                       :index => "0:0",
+                       :index => "#{idx}:#{idx}",
                        :with => "lines"
                      })
     end
@@ -595,10 +599,12 @@ def plot_io_pgr_data(pgr_data, option)
                        :title => "write",
                        :datafile => datafile.path,
                        :using => "1:3",
-                       :index => "0:0",
+                       :index => "#{idx}:#{idx}",
                        :with => "lines"
                      })
     end
+
+    idx += 1
 
     plot_scatter(:output => File.join(option[:dir],
                                       device + ".eps"),

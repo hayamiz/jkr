@@ -348,13 +348,8 @@ class Jkr
     end
 
     def use_script(name)
-      name = name.to_s
-      name = name + ".rb" unless name =~ /\.rb$/
-      dir = @plan.jkr_env.jkr_script_dir
-      path = File.join(dir, name)
-      script = File.open(path, "r").read
-      self.instance_eval(script, path, 1)
-      true
+      $LOAD_PATH.push(@plan.jkr_env.jkr_script_dir)
+      require name.to_s
     end
   end
 
@@ -363,8 +358,12 @@ class Jkr
       plan.routine.binding.eval <<EOS
 undef result_file
 undef result_file_name
+undef rname
+undef common_file_name
+undef cname
 undef touch_result_file
 undef with_result_file
+undef send_mail
 EOS
     end
 
@@ -380,6 +379,13 @@ end
 def result_file(basename, mode = "a+")
   path = result_file_name(basename)
   File.open(path, mode)
+end
+
+def common_file_name(basename)
+  File.join(File.dirname(#{result_dir.inspect}), basename)
+end
+def cname(basename)
+  result_file_name(basename)
 end
 
 def touch_result_file(basename, options = {})
@@ -399,6 +405,13 @@ def with_result_file(basename, mode = "a+")
   file.close
   raise err if err
   file.path
+end
+
+def send_mail(subject, addrs, body, files = [])
+  attach_option = files.map{|file| "-a \#{file}"}.join(" ")
+  IO.popen("mutt \#{addrs.join(' ')} -s \#{subject.inspect} \#{attach_option}", "w+") do |io|
+    io.puts body
+  end
 end
 EOS
       plan.routine.binding.eval(src, __FILE__, line)
