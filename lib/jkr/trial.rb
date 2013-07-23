@@ -29,22 +29,30 @@ class Jkr
       end
     end
 
-    def self.run(env, plan)
+    def self.run(env, plan, delete_files_on_error = true)
       plan_suffix = File.basename(plan.file_path, ".plan")
       plan_suffix += "_#{plan.short_desc}" if plan.short_desc
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
       plan.resultset_dir = resultset_dir
-      trials = self.make_trials(resultset_dir, plan)
 
-      FileUtils.copy_file(plan.file_path,
-                          File.join(resultset_dir, File.basename(plan.file_path)))
-      params = plan.params.merge(plan.vars)
-      plan.freeze
-      plan.prep.call(plan)
-      trials.each do |trial|
-        trial.run
+      begin
+        trials = self.make_trials(resultset_dir, plan)
+
+        FileUtils.copy_file(plan.file_path,
+                            File.join(resultset_dir, File.basename(plan.file_path)))
+        params = plan.params.merge(plan.vars)
+        plan.freeze
+        plan.prep.call(plan)
+        trials.each do |trial|
+          trial.run
+        end
+        plan.cleanup.call(plan)
+      rescue Exception => err
+        if delete_files_on_error
+          FileUtils.rm_rf(resultset_dir)
+        end
+        raise err
       end
-      plan.cleanup.call(plan)
     end
 
     def initialize(result_dir, plan, params)
