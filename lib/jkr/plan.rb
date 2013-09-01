@@ -1,5 +1,6 @@
 
 require 'jkr/utils'
+require 'jkr/error'
 require 'tempfile'
 
 class Jkr
@@ -7,9 +8,11 @@ class Jkr
     attr_accessor :title
     attr_accessor :desc
     attr_accessor :short_desc
-    
+
     attr_accessor :params
     attr_accessor :vars
+
+    attr_accessor :base_plan
 
     attr_accessor :resultset_dir
 
@@ -26,10 +29,21 @@ class Jkr
     attr_reader :file_path
     attr_reader :jkr_env
 
-    def initialize(jkr_env, plan_file_path = nil)
+    def initialize(jkr_env, plan_name, options = {})
+      @base_plan = nil
       @jkr_env = jkr_env
-      @file_path = plan_file_path || jkr_env.next_plan
-      return nil unless @file_path
+      @file_path = File.expand_path("#{plan_name}.plan", @jkr_env.jkr_plan_dir)
+      if options[:plan_path]
+        @file_path = options[:plan_path]
+      else
+        if ! plan_name
+          raise ArgumentError.new("plan_name is required.")
+        end
+      end
+
+      if ! File.exists?(@file_path)
+        raise Errno::ENOENT.new(@file_path)
+      end
 
       @title = "no title"
       @desc = "no desc"
@@ -54,6 +68,41 @@ class Jkr
       PlanLoader.load_plan(self)
     end
 
+    def param_names
+      @params.keys
+    end
+
+    def var_names
+      @vars.keys
+    end
+
+    def do_prep(plan = self)
+      if self.base_plan
+        self.base_plan.do_prep(plan)
+      end
+      self.prep.call(plan)
+    end
+
+    def do_routine(plan, params)
+      if self.base_plan
+        self.base_plan.do_routine(plan, params)
+      end
+      self.routine.call(plan, params)
+    end
+
+    def do_cleanup(plan = self)
+      if self.base_plan
+        self.base_plan.do_cleanup(plan)
+      end
+      self.cleanup.call(plan)
+    end
+
+    def do_analysis(plan = self)
+      if self.base_plan
+        self.base_plan.do_analysis(plan)
+      end
+      self.analysis.call(plan)
+    end
 
     class PlanLoader
       class PlanParams
@@ -93,6 +142,14 @@ class Jkr
         @plan
       end
 
+      def extend(base_plan_name)
+        base_plan = Plan.new(self.plan.jkr_env, base_plan_name)
+        self.plan.base_plan = base_plan
+
+        @plan.params.merge!(base_plan.params)
+        @plan.vars.merge!(base_plan.vars)
+      end
+
       def title(plan_title)
         @plan.title = plan_title.to_s
       end
@@ -108,6 +165,24 @@ class Jkr
       def def_parameters(&proc)
         @params = PlanParams.new
         proc.call()
+
+        consts = @params.params
+        vars   = @params.vars
+
+        if @plan.base_plan
+          consts.keys.each do |const|
+            if ! @plan.params.include?(const)
+              raise Jkr::ParameterError.new("#{const} is not defined in base plan: #{@plan.base_plan.title}")
+            end
+          end
+
+          vars.keys.each do |var|
+            if ! @plan.vars.include?(var)
+              raise Jkr::ParameterError.new("#{var} is not defined in base plan: #{@plan.base_plan.title}")
+            end
+          end
+        end
+
         @plan.params.merge!(@params.params)
         @plan.vars.merge!(@params.vars)
       end
@@ -132,7 +207,7 @@ class Jkr
         if arg.is_a? Hash
           # set param
           $stderr.puts("'parameter' is deprecated. use 'constant' instead.")
-          @params.params.merge!(arg)
+          constant(arg)
         else
           @params
         end
@@ -140,6 +215,12 @@ class Jkr
 
       def constant(arg = nil)
         if arg.is_a? Hash
+          arg.keys.each do |const_name|
+            if @params.vars.keys.include?(const_name)
+              raise Jkr::ParameterError.new("#{const_name} is already defined as variable")
+            end
+          end
+
           # set param
           @params.params.merge!(arg)
         else
@@ -150,9 +231,15 @@ class Jkr
 
       def variable(arg = nil)
         if arg.is_a? Hash
+          arg.keys.each do |var_name|
+            if @params.params.keys.include?(var_name)
+              raise Jkr::ParameterError.new("#{var_name} is already defined as constant")
+            end
+          end
+
           @params.vars.merge!(arg)
         else
-          @params
+          raise ArgumentError.new
         end
       end
 

@@ -2,6 +2,7 @@
 require 'jkr/array'
 require 'jkr/numeric'
 require 'jkr/env'
+require 'jkr/error'
 require 'jkr/plan'
 require 'jkr/trial'
 require 'jkr/analysis'

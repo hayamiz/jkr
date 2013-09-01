@@ -1,0 +1,32 @@
+ # -*- mode: ruby -*-
+
+extend 'example'
+
+title "child of example"
+description "this is a child of example."
+short_desc ""
+
+def_parameters do
+  # cannot overwrite var of base with param
+  variable :foo => ["hanzawa", "naoki"]
+end
+
+def_prep do |plan|
+  $call_order.push("child_of_example")
+  "this is child_of_example.plan's prep"
+end
+
+def_routine do |plan, params|
+  $call_order.push("child_of_example")
+  "this is child_of_example.plan's routine"
+end
+
+def_cleanup do |plan|
+  $call_order.push("child_of_example")
+  "this is child_of_example.plan's cleanup"
+end
+
+def_analysis do |plan|
+  $call_order.push("child_of_example")
+  "this is child_of_example.plan's analysis"
+end

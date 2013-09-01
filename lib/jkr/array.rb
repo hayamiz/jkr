@@ -36,17 +36,6 @@ class Array
     ret
   end
 
-  def any?(&block)
-    ret = false
-    self.each do |elem|
-      if block.call(elem)
-        ret = true
-        break
-      end
-    end
-    ret
-  end
-
   def group_by()
     ret = Hash.new{ Array.new }
     self.each do |elem|
