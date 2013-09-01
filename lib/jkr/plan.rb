@@ -1,5 +1,6 @@
 
 require 'jkr/utils'
+require 'jkr/error'
 require 'tempfile'
 
 class Jkr
