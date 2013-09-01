@@ -20,7 +20,7 @@ class Jkr
       plan = Jkr::Plan.new(env, nil, :plan_path)
 
       Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, plan)
-      plan.analysis.call(plan)
+      plan.do_analysis()
       Jkr::AnalysisUtils.undef_analysis_utils(plan)
     end
   end

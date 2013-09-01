@@ -1,0 +1,36 @@
+ # -*- mode: ruby -*-
+
+title "example"
+description "this is an example."
+short_desc ""
+
+def_parameters do
+  constant :foo => 123
+  variable :baz => [:a, :b]
+
+  constant :yomiko => "read man"
+  variable :miss => "deep"
+
+  # error: overwriting var by const
+  constant :baz => :a
+end
+
+def_prep do |plan|
+  $call_order.push("example")
+  "this is example.plan's prep"
+end
+
+def_routine do |plan, params|
+  $call_order.push("example")
+  "this is example.plan's routine"
+end
+
+def_cleanup do |plan|
+  $call_order.push("example")
+  "this is example.plan's cleanup"
+end
+
+def_analysis do |plan|
+  $call_order.push("example")
+  "this is example.plan's analysis"
+end

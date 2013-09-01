@@ -42,11 +42,11 @@ class Jkr
                             File.join(resultset_dir, File.basename(plan.file_path)))
         params = plan.params.merge(plan.vars)
         plan.freeze
-        plan.prep.call(plan)
+        plan.do_prep()
         trials.each do |trial|
           trial.run
         end
-        plan.cleanup.call(plan)
+        plan.do_cleanup()
       rescue Exception => err
         if delete_files_on_error
           FileUtils.rm_rf(resultset_dir)
@@ -64,7 +64,7 @@ class Jkr
 
     def run()
       Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
-      @plan.routine.call(@plan, @params)
+      @plan.do_routine(@plan, @params)
       Jkr::TrialUtils.undef_routine_utils(@plan)
     end
   end
