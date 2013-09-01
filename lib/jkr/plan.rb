@@ -58,7 +58,6 @@ class Jkr
         end
 
         if ! @file_path
-          p plan_candidates
           raise ArgumentError.new("No such plan: #{plan_name}")
         end
       end

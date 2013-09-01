@@ -214,7 +214,6 @@ describe Jkr::Plan do
       FileUtils.rm(File.expand_path("child.plan", @jkr_env.jkr_plan_dir))
       FileUtils.rm(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir))
 
-      puts(`ls #{tmp_plandir}`)
 
       lambda do
         Jkr::Plan.new(@jkr_env, nil,

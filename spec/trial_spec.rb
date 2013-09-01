@@ -28,6 +28,7 @@ describe Jkr::Trial do
     end
 
     it "should create resultset dir by run" do
+      p :hoge
       @plan.resultset_dir.should be_nil
       Jkr::Trial.run(@jkr_env, @plan)
       @plan.resultset_dir.should_not be_nil
