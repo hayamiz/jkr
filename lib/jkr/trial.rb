@@ -38,8 +38,12 @@ class Jkr
       begin
         trials = self.make_trials(resultset_dir, plan)
 
-        FileUtils.copy_file(plan.file_path,
-                            File.join(resultset_dir, File.basename(plan.file_path)))
+        _plan = plan
+        begin
+          FileUtils.copy_file(_plan.file_path,
+                              File.join(resultset_dir, File.basename(_plan.file_path)))
+        end while _plan = _plan.base_plan
+
         params = plan.params.merge(plan.vars)
         plan.freeze
         plan.do_prep()

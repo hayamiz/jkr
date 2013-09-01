@@ -13,6 +13,7 @@ class Jkr
     attr_accessor :vars
 
     attr_accessor :base_plan
+    attr_accessor :plan_search_path
 
     attr_accessor :resultset_dir
 
@@ -32,12 +33,33 @@ class Jkr
     def initialize(jkr_env, plan_name, options = {})
       @base_plan = nil
       @jkr_env = jkr_env
-      @file_path = File.expand_path("#{plan_name}.plan", @jkr_env.jkr_plan_dir)
+
+      if options[:plan_search_path].is_a? String
+        options[:plan_search_path] = [options[:plan_search_path]]
+      end
+      @plan_search_path = [@jkr_env.jkr_plan_dir]
+      if options[:plan_search_path]
+        @plan_search_path = options[:plan_search_path] + @plan_search_path
+      end
+
       if options[:plan_path]
         @file_path = options[:plan_path]
       else
         if ! plan_name
           raise ArgumentError.new("plan_name is required.")
+        end
+
+        plan_candidates = @plan_search_path.map do |dir|
+          File.expand_path("#{plan_name}.plan", dir)
+        end
+
+        @file_path = plan_candidates.find do |path|
+          File.exists?(path)
+        end
+
+        if ! @file_path
+          p plan_candidates
+          raise ArgumentError.new("No such plan: #{plan_name}")
         end
       end
 
@@ -143,7 +165,8 @@ class Jkr
       end
 
       def extend(base_plan_name)
-        base_plan = Plan.new(self.plan.jkr_env, base_plan_name)
+        base_plan = Plan.new(self.plan.jkr_env, base_plan_name.to_s,
+                             :plan_search_path => @plan.plan_search_path)
         self.plan.base_plan = base_plan
 
         @plan.params.merge!(base_plan.params)

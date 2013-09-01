@@ -17,7 +17,9 @@ class Jkr
       end
       plan_file_path = plan_files.first
 
-      plan = Jkr::Plan.new(env, nil, :plan_path)
+      plan = Jkr::Plan.new(env, nil,
+                           :plan_path => plan_file_path,
+                           :plan_search_path => File.dirname(plan_file_path))
 
       Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, plan)
       plan.do_analysis()
