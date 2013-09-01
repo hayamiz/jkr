@@ -224,6 +224,10 @@ EOS
       plan_dir,
       script_dir,
       queue_dir].each{|dir| FileUtils.mkdir(dir) }
+     [result_dir, plan_dir, script_dir, queue_dir].each do |dir|
+       File.open(File.expand_path(".gitdir", dir), "w") do |_|
+       end
+     end
      File.open(File.join(plan_dir, "example.plan.sample"), "w") do |file|
        file.puts <<EOSS
  # -*- mode: ruby -*-
