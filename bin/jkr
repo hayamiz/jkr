@@ -121,7 +121,7 @@ EOS
      puts "Existing plans:"
      puts
      plans = @jkr_env.plans.map do |plan_file_path|
-       plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+       plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file_path)
        [File.basename(plan_file_path, ".plan"), plan.title]
      end
      maxlen = plans.map{|plan| plan[0].size}.max
@@ -143,7 +143,7 @@ EOS
      if ! argv.empty?
        @jkr_env.plans.each do |plan_file_path|
          if File.basename(plan_file_path) == argv.first + ".plan"
-           plan = Jkr::Plan.new(@jkr_env, plan_file_path)
+           plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file_path)
            Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
          end
        end
@@ -170,7 +170,7 @@ EOS
          end
          break unless process_queue
 
-         plan = Jkr::Plan.new(@jkr_env, plan_file)
+         plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
          Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
        end
      end

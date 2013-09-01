@@ -26,10 +26,20 @@ class Jkr
     attr_reader :file_path
     attr_reader :jkr_env
 
-    def initialize(jkr_env, plan_file_path = nil)
+    def initialize(jkr_env, plan_name, options = {})
       @jkr_env = jkr_env
-      @file_path = plan_file_path || jkr_env.next_plan
-      return nil unless @file_path
+      @file_path = File.expand_path("#{plan_name}.plan", @jkr_env.jkr_plan_dir)
+      if options[:plan_path]
+        @file_path = options[:plan_path]
+      else
+        if ! plan_name
+          raise ArgumentError.new("plan_name is required.")
+        end
+      end
+
+      if ! File.exists?(@file_path)
+        raise Errno::ENOENT.new(@file_path)
+      end
 
       @title = "no title"
       @desc = "no desc"
