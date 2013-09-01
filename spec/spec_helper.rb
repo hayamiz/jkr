@@ -6,6 +6,7 @@ FIXTURE_DIR = File.expand_path('../fixtures', __FILE__)
 require 'tmpdir'
 require 'rubygems'
 require 'jkr'
+require 'fileutils'
 
 RSpec.configure do |config|
   config.mock_with :rspec

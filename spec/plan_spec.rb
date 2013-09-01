@@ -180,4 +180,48 @@ describe Jkr::Plan do
       Jkr::Plan.new(@jkr_env, "example_var_param")
     end.should raise_error(Jkr::ParameterError)
   end
+
+  describe "who is grandchild" do
+    before(:each) do
+      @tmpdir = Dir.mktmpdir
+      @env_dir = File.expand_path("test", @tmpdir)
+      Dir.mkdir(@env_dir)
+      @jkr_dir = File.expand_path("jkr", @env_dir)
+      Dir.chdir(@env_dir) do
+        system(File.expand_path("../../bin/jkr", __FILE__), "init")
+      end
+      @jkr_env = @jkr_env = Jkr::Env.new(@env_dir, @jkr_dir)
+
+      FileUtils.copy(File.expand_path("parent.plan", FIXTURE_DIR),
+                      @jkr_env.jkr_plan_dir)
+      FileUtils.copy(File.expand_path("child.plan", FIXTURE_DIR),
+                      @jkr_env.jkr_plan_dir)
+      FileUtils.copy(File.expand_path("grandchild.plan", FIXTURE_DIR),
+                      @jkr_env.jkr_plan_dir)
+
+      @plan = Jkr::Plan.new(@jkr_env, "grandchild")
+    end
+
+    it "should be able to load ancestors from specified dir" do
+      tmp_plandir = Dir.mktmpdir
+      FileUtils.copy(File.expand_path("parent.plan", @jkr_env.jkr_plan_dir),
+                     tmp_plandir)
+      FileUtils.copy(File.expand_path("child.plan", @jkr_env.jkr_plan_dir),
+                     tmp_plandir)
+      FileUtils.copy(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir),
+                     tmp_plandir)
+      FileUtils.rm(File.expand_path("parent.plan", @jkr_env.jkr_plan_dir))
+      FileUtils.rm(File.expand_path("child.plan", @jkr_env.jkr_plan_dir))
+      FileUtils.rm(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir))
+
+      puts(`ls #{tmp_plandir}`)
+
+      lambda do
+        Jkr::Plan.new(@jkr_env, nil,
+                      :plan_path => File.expand_path("grandchild.plan", tmp_plandir),
+                      :plan_search_path => tmp_plandir)
+      end.should_not raise_error
+    end
+  end
+
 end

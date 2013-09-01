@@ -1,0 +1,19 @@
+ # -*- mode: ruby -*-
+extend "parent"
+
+title "child"
+
+def_parameters do
+end
+
+def_prep do |plan|
+end
+
+def_routine do |plan, param|
+end
+
+def_cleanup do |plan|
+end
+
+def_analysis do |plan|
+end
