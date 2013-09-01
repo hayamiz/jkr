@@ -72,6 +72,8 @@ EOS
     end
 
     def self.define_routine_utils(result_dir, plan, params)
+      _plan = plan
+      begin
       line = __LINE__; src = <<EOS
 def result_file_name(basename)
   File.join(#{result_dir.inspect}, basename)
@@ -111,7 +113,8 @@ def with_result_file(basename, mode = "a+")
   file.path
 end
 EOS
-      plan.routine.binding.eval(src, __FILE__, line)
+      _plan.routine.binding.eval(src, __FILE__, line)
+      end while _plan = _plan.base_plan
     end
   end
 

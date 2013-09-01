@@ -67,6 +67,7 @@ class Jkr
     private :initialize
 
     def run()
+      plan = @plan
       Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
       @plan.do_routine(@plan, @params)
       Jkr::TrialUtils.undef_routine_utils(@plan)
