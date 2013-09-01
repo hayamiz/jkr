@@ -178,9 +178,12 @@ class Jkr
           rows = blockstr.lines.map(&:strip)
           header = rows.shift.split
           next if header.shift =~ /Average/
+          if header.first =~ /\AAM|PM\Z/
+            header.shift
+          end
           result[:labels] = header.map do |label|
             {
-              "CPU" => :cpu, "%usr" => :usr, "%user" => :user,
+              "CPU" => :cpu, "%usr" => :usr, "%user" => :usr,
               "%nice" => :nice, "%sys" => :sys, "%iowait" => :iowait,
               "%irq" => :irq, "%soft" => :soft, "%steal" => :steal,
               "%guest" => :guest, "%idle" => :idle
@@ -190,6 +193,10 @@ class Jkr
           result[:data] = rows.map { |row|
             vals = row.split
             wallclock = vals.shift
+            if vals.first =~ /\AAM|PM\Z/
+              vals.shift
+            end
+
             unless time
               unless wallclock =~ /(\d{2}):(\d{2}):(\d{2})/
                 raise RuntimeError.new("Cannot extract wallclock time from mpstat data")
@@ -241,30 +248,52 @@ class Jkr
     #
     def self.read_iostat(io_or_filepath, &block)
       hostname = `hostname`.strip
-      
       date = nil
       last_time = nil
       sysname_regex = Regexp.new(Regexp.quote("#{`uname -s`.strip}"))
       self.read_blockseq(io_or_filepath) do |blockstr|
         if blockstr =~ sysname_regex
           # the first line
-          if blockstr =~ /(\d{2})\/(\d{2})\/(\d{2})$/
-            y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
-            date = Date.new(2000 + y, m, d)
+          if blockstr =~ /(\d{2})\/(\d{2})\/(\d{2,4})/
+            if $~[3].size == 2
+              y = $~[3].to_i + 2000
+            else
+              y = $~[3].to_i
+            end
+            m = $~[1].to_i
+            d = $~[2].to_i
+            date = Date.new(y, m, d)
             next
           end
         else
           rows = blockstr.lines.map(&:strip)
           timestamp = rows.shift
           time = nil
+          unless date
+            raise RuntimeError.new("Cannot detect date: #{io_or_filepath}")
+          end
+
           if timestamp =~ /(\d{2})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})/
             y = $~[3].to_i; m = $~[1].to_i; d = $~[2].to_i
-            time = Time.local(y, m, d, $~[4].to_i, $~[5].to_i, $~[6].to_i)
+            time = Time.local(date.year, date.month, date.day, $~[4].to_i, $~[5].to_i, $~[6].to_i)
+          elsif date && timestamp =~ /Time: (\d{2}):(\d{2}):(\d{2}) (AM|PM)/
+            if $~[4] == "PM"
+              hour = $~[1].to_i
+              if $~[1].to_i != 12
+                hour += 12
+              end
+            elsif $~[4] == "AM" && $~[1].to_i == 12
+              hour = 0
+            else
+              hour = $~[1].to_i
+            end
+            time = Time.local(date.year, date.month, date.day,
+                              hour, $~[2].to_i, $~[3].to_i)
           elsif date && timestamp =~ /Time: (\d{2}):(\d{2}):(\d{2})/
             time = Time.local(date.year, date.month, date.day,
                               $~[1].to_i, $~[2].to_i, $~[3].to_i)
           end
-          
+
           unless time
             unless date
               raise StandardError.new("Cannot find date in your iostat log: #{io_or_filepath}")

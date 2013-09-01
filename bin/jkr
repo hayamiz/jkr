@@ -47,6 +47,7 @@ EOS
 
     @options[:directory] = Dir.pwd
     @options[:jkr_directory] = File.join(@options[:directory], "jkr")
+    @options[:delete_files_on_error] = true
 
     @optparser.on('-C', '--directory DIR',
                "Change to directory DIR before reading jkr config files."
@@ -59,6 +60,11 @@ EOS
                   "Jkr specification file."
                   ) do |jkr_directory|
       @options[:jkr_directory] = jkr_directory
+    end
+
+    @optparser.on('-D', '--debug',
+                  'Do not remove result files even if error happened for debugging.') do
+      @options[:delete_files_on_error] = false
     end
   end
 
@@ -76,8 +82,10 @@ EOS
     self.parse_args(argv) # argv updated destructively
 
     if argv.empty?
-      argv = ["run"]
+      puts @optparser.help
+      exit 1
     end
+
     command = argv.shift
     unless self.jkr_commands.include?(command)
       $stderr.puts "No such command: #{command}"
@@ -136,7 +144,7 @@ EOS
        @jkr_env.plans.each do |plan_file_path|
          if File.basename(plan_file_path) == argv.first + ".plan"
            plan = Jkr::Plan.new(@jkr_env, plan_file_path)
-           Jkr::Trial.run(@jkr_env, plan)
+           Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
          end
        end
      end
@@ -163,7 +171,7 @@ EOS
          break unless process_queue
 
          plan = Jkr::Plan.new(@jkr_env, plan_file)
-         Jkr::Trial.run(@jkr_env, plan)
+         Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
        end
      end
    end
@@ -222,6 +230,7 @@ EOS
 
 title "example"
 description "this is an example."
+short_desc ""
 
 def_parameters do
   constant :foo => 123

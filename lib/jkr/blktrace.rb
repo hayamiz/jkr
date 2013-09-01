@@ -12,6 +12,7 @@ class Jkr
     end
 
     def initialize(input_basename)
+      input_basename = Pathname.new(input_basename).relative_path_from(Pathname.new(`pwd`.strip)).to_s
       if Dir.glob(input_basename + ".blktrace.*").size > 0
         @input_basename = input_basename
         puts "multi file: #{input_basename}"
