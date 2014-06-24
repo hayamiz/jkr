@@ -290,6 +290,16 @@ class Jkr
       end
 
       alias :system_ :sh!
+
+      def su_sh(*args)
+        puts "su_sh: #{args.join(' ')}"
+        su_cmd = File.expand_path("../su_cmd", __FILE__)
+        system(su_cmd, args.join(' '))
+      end
+
+      def drop_caches()
+        su_sh('echo 1 > /proc/sys/vm/drop_caches')
+      end
     end
   end
 end
