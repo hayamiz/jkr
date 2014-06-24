@@ -15,28 +15,28 @@ def_parameters do
 end
 
 # preparation
-def_prep do |params|
+def_prep do |plan|
   puts '*' * TERMWIDTH
   puts "Start execution: #{plan.title}"
 end
 
 # routine executed for each combination of values of variables
-def_routine do |params|
+def_routine do |plan, params|
   puts '-' * TERMWIDTH
 
   # the value of "parameter/variable :foo" can be obtained by
-  # "param[:foo]" or "param.foo"
-  puts "hello world, #{params.foo}"
+  # "param[:foo]"
+  puts "hello world, #{params[:foo]}"
   puts "hello world, #{params[:bar]}"
 
-  puts(params.foo + params.baz)
+  puts(params[:foo] + params[:baz])
 
   touch = touch_result_file("touched-file.log")
 
   with_result_file("test.log") do |test_log|
-    test_log.puts "hello world, #{params.foo}"
+    test_log.puts "hello world, #{params[:foo]}"
     test_log.puts "hello world, #{params[:bar]}"
-    test_log.puts(params.foo + params.baz)
+    test_log.puts(params[:foo] + params[:baz])
     [$stdout, test_log].map{|io| io.puts "touched #{touch}"}
   end
 
@@ -44,7 +44,7 @@ def_routine do |params|
 end
 
 # cleanup
-def_cleanup do |params|
+def_cleanup do |plan|
   puts '*' * TERMWIDTH
   puts "Finished execution: #{plan.title}"
   puts "FileUtils.remove(#{plan.file_path.inspect})"
