@@ -250,7 +250,6 @@ class Jkr
         end
       end
 
-
       def variable(arg = nil)
         if arg.is_a? Hash
           arg.keys.each do |var_name|
@@ -268,6 +267,29 @@ class Jkr
       def param_filter(&proc)
         @plan.param_filters.push(proc)
       end
+
+      # utility functions
+      def send_mail(subject, addrs, body, files = [])
+        attach_option = files.map{|file| "-a #{file}"}.join(" ")
+        IO.popen("mutt #{addrs.join(' ')} -s #{subject.inspect} #{attach_option}", "w+") do |io|
+          io.puts body
+        end
+      end
+
+      def sh(*args)
+        puts "sh: #{args.join(' ')}"
+        return system(*args)
+      end
+
+      def sh!(*args)
+        puts "sh!: #{args.join(' ')}"
+        unless system(*args)
+          raise RuntimeError.new(args.join(" "))
+        end
+        true
+      end
+
+      alias :system_ :sh!
     end
   end
 end

@@ -26,13 +26,6 @@ class Barrier
   end
 end
 
-def system_(*args)
-  puts "system_: #{args.join(' ')}"
-  unless system(*args)
-    raise RuntimeError.new(args.join(" "))
-  end
-end
-
 class Jkr
   class Utils
     def self.reserve_next_dir(dir, suffix = "")
