@@ -53,7 +53,10 @@ class Jkr
 
   class TrialUtils
     def self.undef_routine_utils(plan)
-      plan.routine.binding.eval <<EOS
+      _plan = plan
+      begin
+        if _plan.routine
+          _plan.routine.binding.eval <<EOS
 undef result_file
 undef result_file_name
 undef rname
@@ -62,6 +65,8 @@ undef cname
 undef touch_result_file
 undef with_result_file
 EOS
+        end
+      end while _plan = _plan.base_plan
     end
 
     def self.define_routine_utils(result_dir, plan, params)
@@ -106,7 +111,9 @@ def with_result_file(basename, mode = "a+")
   file.path
 end
 EOS
-      _plan.routine.binding.eval(src, __FILE__, line)
+        if _plan.routine
+          _plan.routine.binding.eval(src, __FILE__, line)
+        end
       end while _plan = _plan.base_plan
     end
   end
@@ -186,7 +193,9 @@ def with_result_file(basename, mode = "r")
   file.path
 end
 EOS
-      plan.routine.binding.eval(src, __FILE__, line)
+      if plan.routine
+        plan.routine.binding.eval(src, __FILE__, line)
+      end
     end
   end
 end

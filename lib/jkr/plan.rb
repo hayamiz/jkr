@@ -2,6 +2,8 @@
 require 'jkr/utils'
 require 'jkr/error'
 require 'tempfile'
+require 'net/http'
+require 'fileutils'
 
 class Jkr
   class Plan
@@ -72,16 +74,10 @@ class Jkr
 
       @params = {}
       @vars = {}
-      @routine = lambda do |_|
-        raise NotImplementedError.new("A routine of experiment '#{@title}' is not implemented")
-      end
+      @routine = nil
       @routine_nr_run = 1
-      @prep = lambda do |_|
-        raise NotImplementedError.new("A prep of experiment '#{@title}' is not implemented")
-      end
-      @cleanup = lambda do |_|
-        raise NotImplementedError.new("A cleanup of experiment '#{@title}' is not implemented")
-      end
+      @prep = nil
+      @cleanup = nil
       @param_filters = []
 
       @src = nil
@@ -105,10 +101,11 @@ class Jkr
     end
 
     def do_routine(plan, params)
-      if self.base_plan
+      if self.routine.nil?
         self.base_plan.do_routine(plan, params)
+      else
+        self.routine.call(plan, params)
       end
-      self.routine.call(plan, params)
     end
 
     def do_cleanup(plan = self)
@@ -215,6 +212,16 @@ class Jkr
         end
         @plan.routine = proc
       end
+
+      # call routine of super plan
+      def super_routine(plan, params)
+        if @plan.base_plan == nil
+          RuntimeError.new("No super plan.")
+        else
+          @plan.base_plan.do_routine(plan, params)
+        end
+      end
+
       def def_prep(&proc)
         @plan.prep = proc
       end
@@ -276,6 +283,11 @@ class Jkr
         end
       end
 
+      def notify_im_kayac(username, message)
+        Net::HTTP.post_form(URI.parse("http://im.kayac.com/api/post/#{username}"),
+                            {'message'=>message})
+      end
+
       def sh(*args)
         puts "sh: #{args.join(' ')}"
         return system(*args)
@@ -299,6 +311,21 @@ class Jkr
 
       def drop_caches()
         su_sh('echo 1 > /proc/sys/vm/drop_caches')
+      end
+
+      def checkout_git(dir, repo_url, branch)
+        if ! File.directory?(dir)
+          sh! "git clone #{repo_url} #{dir}"
+        end
+
+        Dir.chdir(dir) do
+          if ! File.exists?(".git")
+            sh! "git clone #{repo_url} ."
+          end
+
+          sh "git checkout -t origin/#{branch}"
+          sh! "git pull"
+        end
       end
     end
   end
