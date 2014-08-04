@@ -193,8 +193,8 @@ def with_result_file(basename, mode = "r")
   file.path
 end
 EOS
-      if plan.routine
-        plan.routine.binding.eval(src, __FILE__, line)
+      if plan.analysis
+        plan.analysis.binding.eval(src, __FILE__, line)
       end
     end
   end
