@@ -10,6 +10,7 @@ class Jkr
     attr_accessor :title
     attr_accessor :desc
     attr_accessor :short_desc
+    attr_accessor :plan_name
 
     attr_accessor :params
     attr_accessor :vars
@@ -71,6 +72,7 @@ class Jkr
       @title = "no title"
       @desc = "no desc"
       @short_desc = nil
+      @plan_name = plan_name
 
       @params = {}
       @vars = {}
@@ -117,9 +119,12 @@ class Jkr
 
     def do_analysis(plan = self)
       if self.base_plan
+        self.base_plan.resultset_dir = self.resultset_dir
         self.base_plan.do_analysis(plan)
       end
+      Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, self)
       self.analysis.call(plan)
+      Jkr::AnalysisUtils.undef_analysis_utils(self)
     end
 
     class PlanLoader
@@ -325,6 +330,8 @@ class Jkr
 
           sh "git checkout -t origin/#{branch}"
           sh! "git pull"
+
+          sh! "git rev-parse HEAD > #{@plan.resultset_dir + '/git-commit.log'}"
         end
       end
     end
