@@ -136,7 +136,7 @@ class Jkr
           @vars = {}
           @params = {}
         end
-        
+
         def [](key)
           @params[key]
         end
@@ -145,21 +145,21 @@ class Jkr
           @params[key] = val
         end
       end
-      
+
       include Jkr::PlanUtils
 
       def initialize(plan)
         @plan = plan
         @params = nil
       end
-      
+
       def self.load_plan(plan)
         plan_loader = self.new(plan)
         plan.src = File.open(plan.file_path, "r").read
         plan_loader.instance_eval(plan.src, plan.file_path, 1)
         plan
       end
-      
+
       ## Functions for describing plans in '.plan' files below
       def plan
         @plan
@@ -177,7 +177,7 @@ class Jkr
       def title(plan_title)
         @plan.title = plan_title.to_s
       end
-      
+
       def description(plan_desc)
         @plan.desc = plan_desc.to_s
       end
@@ -185,7 +185,7 @@ class Jkr
       def short_desc(short_desc)
         @plan.short_desc = short_desc.gsub(/ /, '_').gsub(/\//, '!')
       end
-      
+
       def def_parameters(&proc)
         @params = PlanParams.new
         proc.call()
@@ -210,7 +210,7 @@ class Jkr
         @plan.params.merge!(@params.params)
         @plan.vars.merge!(@params.vars)
       end
-      
+
       def def_routine(options = {}, &proc)
         if options[:nr_run]
           @plan.routine_nr_run = options[:nr_run]
@@ -260,6 +260,10 @@ class Jkr
         else
           raise ArgumentError.new
         end
+      end
+
+      def jkr_env
+        self.plan.jkr_env
       end
 
       def variable(arg = nil)
