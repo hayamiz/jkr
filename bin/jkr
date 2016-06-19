@@ -244,7 +244,9 @@ def_prep do |plan|
 end
 
 def_routine do |plan, params|
-  # do nothing
+  # store various information with metastore
+  # metastore data is saved in "metastore.msh" with Marshal.dump for each trial
+  plan.metastore[:foo] = "bar"
 end
 
 def_cleanup do |plan|

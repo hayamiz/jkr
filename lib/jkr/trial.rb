@@ -72,9 +72,25 @@ class Jkr
       File.open("#{@result_dir}/params.json", "w") do |f|
         f.puts(@params.to_json)
       end
+
+      # reset plan.metastore
+      plan.metastore.clear
+
+      # define utility functions for plan.routine object
       Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
+
+      @plan.metastore[:trial_start_time] = Time.now
       @plan.do_routine(@plan, @params)
+      @plan.metastore[:trial_end_time] = Time.now
+
       Jkr::TrialUtils.undef_routine_utils(@plan)
+
+      # save plan.metastore
+      Marshal.dump(@plan.metastore,
+                   File.open("#{@result_dir}/metastore.msh", "w"))
+      File.open("#{@result_dir}/metastore.json", "w") do |f|
+        f.puts(@plan.metastore.to_json)
+      end
     end
   end
 end

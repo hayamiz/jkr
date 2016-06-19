@@ -14,6 +14,7 @@ class Jkr
 
     attr_accessor :params
     attr_accessor :vars
+    attr_accessor :metastore
 
     attr_accessor :base_plan
     attr_accessor :plan_search_path
@@ -36,6 +37,7 @@ class Jkr
     def initialize(jkr_env, plan_name, options = {})
       @base_plan = nil
       @jkr_env = jkr_env
+      @metastore = Hash.new
 
       if options[:plan_search_path].is_a? String
         options[:plan_search_path] = [options[:plan_search_path]]
