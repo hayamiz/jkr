@@ -317,7 +317,12 @@ class Jkr
       def su_sh(*args)
         puts "su_sh: #{args.join(' ')}"
         su_cmd = File.expand_path("../su_cmd", __FILE__)
-        system(su_cmd, args.join(' '))
+        system_(su_cmd, args.join(' '))
+      end
+
+      def sudo_sh(*args)
+        puts "sudo_sh: #{args.join(' ')}"
+        system_((["sudo"] + args).join(' '))
       end
 
       def drop_caches()
