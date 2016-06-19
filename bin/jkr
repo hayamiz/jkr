@@ -137,6 +137,14 @@ EOS
      }
    end
 
+   def pretty_time(seconds)
+     hour = seconds / 3600
+     min = (seconds - hour * 3600) / 60
+     sec = seconds - hour * 3600 - min * 60
+
+     sprintf("%02d:%02d:%02d", hour, min, sec)
+   end
+
    def run_cmd(argv)
      @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
 
@@ -149,7 +157,41 @@ EOS
        end
      end
 
+
      # run queued plans
+
+     # show estimated execution time first
+     queued_plans = Dir.glob(File.expand_path('*.plan', @jkr_env.jkr_queue_dir))
+
+     if queued_plans.size > 0
+       puts("")
+       puts("== Execution time estimates ==")
+       total_time = 0
+       queued_plans.each do |plan_path|
+         plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_path)
+         if plan.exec_time_estimate
+           time_sec = plan.exec_time_estimate.call(plan)
+           time = pretty_time(time_sec)
+         else
+           total_time = nil
+           time = "N/A"
+         end
+
+         if total_time
+           total_time += time_sec
+         end
+
+         puts("  * #{File.basename(plan_path)}:\t#{time}")
+       end
+       puts("")
+       if total_time
+         puts("  * Total: #{pretty_time(total_time)}")
+       else
+         puts("  * Total: N/A")
+       end
+       puts("")
+     end
+
      process_queue = true
      while process_queue
        Dir.mktmpdir do |tmpdir|
@@ -238,9 +280,17 @@ short_desc ""
 
 def_parameters do
   constant :foo => 123
+  variable :trial_no => [1,2,3]
 end
 
 def_prep do |plan|
+end
+
+# This is optional routine for presenting estimated execution time for users.
+# Return estimated execution time in seconds.
+exec_time_estimate do |plan|
+  # 30 seconds for each trial
+  30 * plan.vars[:trial_no].size
 end
 
 def_routine do |plan, params|

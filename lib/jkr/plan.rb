@@ -28,6 +28,7 @@ class Jkr
     attr_accessor :routine_nr_run
     attr_accessor :analysis
     attr_accessor :param_filters
+    attr_accessor :exec_time_estimate
 
     attr_accessor :src
 
@@ -227,6 +228,10 @@ class Jkr
         else
           @plan.base_plan.do_routine(plan, params)
         end
+      end
+
+      def exec_time_estimate(&proc)
+        @plan.exec_time_estimate = proc
       end
 
       def def_prep(&proc)

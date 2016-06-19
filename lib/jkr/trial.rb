@@ -30,6 +30,14 @@ class Jkr
       end
     end
 
+    def self.pretty_time(seconds)
+      hour = seconds / 3600
+      min = (seconds - hour * 3600) / 60
+      sec = seconds - hour * 3600 - min * 60
+
+      sprintf("%02d:%02d:%02d", hour, min, sec)
+    end
+
     def self.run(env, plan, delete_files_on_error = true)
       plan_suffix = File.basename(plan.file_path, ".plan")
       plan_suffix += "_#{plan.short_desc}" if plan.short_desc
@@ -47,6 +55,14 @@ class Jkr
 
         params = plan.params.merge(plan.vars)
         plan.freeze
+
+        # show estimated execution time if available
+        if plan.exec_time_estimate
+          puts("")
+          puts("== estimated execution time: #{pretty_time(plan.exec_time_estimate.call(plan))} ==")
+          puts("")
+        end
+
         plan.do_prep()
         trials.each do |trial|
           trial.run
