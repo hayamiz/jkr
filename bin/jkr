@@ -145,16 +145,25 @@ EOS
      sprintf("%02d:%02d:%02d", hour, min, sec)
    end
 
+   def find_plan_file(plan_name)
+     @jkr_env.plans.find do |plan_file_path|
+       File.basename(plan_file_path) == plan_name + ".plan"
+     end
+   end
+
    def run_cmd(argv)
      @jkr_env = Jkr::Env.new(@options[:directory], @options[:jkr_directory])
 
      if ! argv.empty?
-       @jkr_env.plans.each do |plan_file_path|
-         if File.basename(plan_file_path) == argv.first + ".plan"
-           plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file_path)
-           Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
-         end
+       plan_name = argv.first
+       plan_file = find_plan_file(plan_name)
+
+       unless plan_file
+         raise ArgumentError.new("No such plan: #{plan_name}")
        end
+
+       plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
+       Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
      end
 
 
@@ -238,13 +247,18 @@ EOS
        end.compact
        next_queue_id = ([-1] + queue_ids).max + 1
 
-       @jkr_env.plans.each do |plan_file_path|
-         if File.basename(plan_file_path) == argv.first + ".plan"
-           FileUtils.copy(plan_file_path,
-                          File.expand_path(sprintf("%05d.%s", next_queue_id, File.basename(plan_file_path)),
-                                           @jkr_env.jkr_queue_dir))
-         end
+
+       plan_name = argv.first
+       plan_file = find_plan_file(plan_name)
+
+       unless plan_file
+         raise ArgumentError.new("No such plan: #{plan_name}")
        end
+
+       FileUtils.copy(plan_file,
+                      File.expand_path(sprintf("%05d.%s", next_queue_id,
+                                               File.basename(plan_file)),
+                                       @jkr_env.jkr_queue_dir))
      end
    end
 
