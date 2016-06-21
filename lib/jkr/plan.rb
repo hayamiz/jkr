@@ -99,10 +99,11 @@ class Jkr
     end
 
     def do_prep(plan = self)
-      if self.base_plan
+      if self.prep.nil?
         self.base_plan.do_prep(plan)
+      else
+        self.prep.call(plan)
       end
-      self.prep.call(plan)
     end
 
     def do_routine(plan, params)
@@ -114,20 +115,22 @@ class Jkr
     end
 
     def do_cleanup(plan = self)
-      if self.base_plan
+      if self.cleanup.nil?
         self.base_plan.do_cleanup(plan)
+      else
+        self.cleanup.call(plan)
       end
-      self.cleanup.call(plan)
     end
 
     def do_analysis(plan = self)
-      if self.base_plan
+      if self.analysis.nil?
         self.base_plan.resultset_dir = self.resultset_dir
         self.base_plan.do_analysis(plan)
+      else
+        Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, self)
+        self.analysis.call(plan)
+        Jkr::AnalysisUtils.undef_analysis_utils(self)
       end
-      Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, self)
-      self.analysis.call(plan)
-      Jkr::AnalysisUtils.undef_analysis_utils(self)
     end
 
     class PlanLoader
@@ -227,6 +230,31 @@ class Jkr
           RuntimeError.new("No super plan.")
         else
           @plan.base_plan.do_routine(plan, params)
+        end
+      end
+
+      def super_prep(plan)
+        if @plan.base_plan == nil
+          RuntimeError.new("No super plan.")
+        else
+          @plan.base_plan.do_prep(plan)
+        end
+      end
+
+      def super_cleanup(plan)
+        if @plan.base_plan == nil
+          RuntimeError.new("No super plan.")
+        else
+          @plan.base_plan.do_cleanup(plan)
+        end
+      end
+
+      def super_analysis(plan)
+        if @plan.base_plan == nil
+          RuntimeError.new("No super plan.")
+        else
+          @plan.base_plan.resultset_dir = @plan.resultset_dir
+          @plan.base_plan.do_analysis(plan)
         end
       end
 
