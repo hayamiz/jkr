@@ -11,7 +11,7 @@ describe Jkr::Plan do
   end
 
   it "should load example.plan" do
-    @plan.should_not be_nil
+    expect(@plan).not_to be_nil
     expect(@plan.title).to eq("example")
   end
 
@@ -113,7 +113,7 @@ describe Jkr::Plan do
     end
 
     it "should have base_plan" do
-      @plan.should_not be_nil
+      expect(@plan).not_to be_nil
       expect(@plan.base_plan).to be_a(Jkr::Plan)
       expect(@plan.base_plan.title).to eq("example")
     end

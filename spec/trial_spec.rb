@@ -3,7 +3,7 @@ require 'spec_helper'
 
 describe Jkr::Trial do
   it "should respond to run" do
-    Jkr::Trial.should respond_to :run
+    expect(Jkr::Trial).to respond_to :run
   end
 
   describe "of grandchild plan" do
@@ -27,17 +27,18 @@ describe Jkr::Trial do
     end
 
     it "should create resultset dir by run" do
-      @plan.resultset_dir.should be_nil
+      expect(@plan.resultset_dir).to eq(nil)
       Jkr::Trial.run(@jkr_env, @plan)
-      # @plan.resultset_dir.should_not be_nil
-      # File.directory?(@plan.resultset_dir).should be_true
+      expect(@plan.resultset_dir).not_to eq(nil)
+      expect(File.directory?(@plan.resultset_dir)).to eq(true)
     end
 
     it "should copy all ancestor plan files when run" do
-      # Jkr::Trial.run(@jkr_env, @plan)
-      # %w!parent.plan child.plan grandchild.plan!.each do |filename|
-      #   File.exists?(File.expand_path(filename, @plan.resultset_dir)).should be_true
-      # end
+      Jkr::Trial.run(@jkr_env, @plan)
+      %w!scripts/parent.plan scripts/child.plan grandchild.plan!.each do |filename|
+        expect(File.exists?(File.expand_path(filename,
+                                             @plan.resultset_dir))).to eq(true)
+      end
     end
   end
 end
@@ -50,13 +51,13 @@ describe Jkr::TrialUtils do
   end
 
   it "should define plan#result_file_name" do
-    lambda do
+    expect do
       @plan.routine.binding.eval('result_file_name("foo")')
-    end.should raise_error
+    end.to raise_error
     Jkr::TrialUtils.define_routine_utils('test_result_dir', @plan, {})
-    lambda do
+    expect do
       @plan.routine.binding.eval('result_file_name("foo")')
-    end.should_not raise_error
+    end.not_to raise_error
   end
 
   describe "with inheritance" do
@@ -67,8 +68,8 @@ describe Jkr::TrialUtils do
 
     it "should devine plan$result_file_name for all ancestors" do
       Jkr::TrialUtils.define_routine_utils('test_result_dir', @plan, {})
-      @plan.routine.binding.eval('result_file_name("foo")').should == 'test_result_dir/foo'
-      @plan.base_plan.routine.binding.eval('result_file_name("foo")').should == 'test_result_dir/foo'
+      expect(@plan.routine.binding.eval('result_file_name("foo")')).to eq('test_result_dir/foo')
+      expect(@plan.base_plan.routine.binding.eval('result_file_name("foo")')).to eq('test_result_dir/foo')
     end
   end
 end
