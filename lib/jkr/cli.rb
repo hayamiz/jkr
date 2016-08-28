@@ -77,6 +77,12 @@ module Jkr
     def execute(*plan_names)
       @jkr_env = Jkr::Env.new(options[:directory])
 
+      if options[:debug]
+        delete_files_on_error = false
+      else
+        delete_files_on_error = true
+      end
+
       if plan_names.size > 0
         plan_name = plan_names.first
         plan_file = find_plan_file(plan_name)
@@ -86,7 +92,7 @@ module Jkr
         end
 
         plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
-        Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
+        Jkr::Trial.run(@jkr_env, plan, delete_files_on_error)
       end
 
       # run queued plans
@@ -144,7 +150,7 @@ module Jkr
           break unless process_queue
 
           plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
-          Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
+          Jkr::Trial.run(@jkr_env, plan, delete_files_on_error)
         end
       end
     end
