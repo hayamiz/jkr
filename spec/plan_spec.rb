@@ -195,6 +195,8 @@ describe Jkr::Plan do
                      @jkr_env.jkr_plan_dir)
       FileUtils.copy(File.expand_path("grandchild.plan", FIXTURE_DIR),
                      @jkr_env.jkr_plan_dir)
+      FileUtils.copy(File.expand_path("foo-bar-script.rb", FIXTURE_DIR),
+                     @jkr_env.jkr_script_dir)
 
       @plan = Jkr::Plan.new(@jkr_env, "grandchild")
     end

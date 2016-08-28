@@ -4,8 +4,6 @@ title "example"
 description "this is an example."
 short_desc ""
 
-use_script 'foo-bar-script'
-
 def_parameters do
   constant :foo => 123
   variable :baz => [:a, :b]

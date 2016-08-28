@@ -43,14 +43,31 @@ module Jkr
       plan_suffix += "_#{plan.short_desc}" if plan.short_desc
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
       plan.resultset_dir = resultset_dir
+      FileUtils.mkdir_p(File.join(resultset_dir, "plan"))
+      FileUtils.mkdir_p(File.join(resultset_dir, "script"))
 
       begin
         trials = self.make_trials(resultset_dir, plan)
 
+        plan_dest_dir = File.join(resultset_dir, "plan")
+        script_dest_dir = File.join(resultset_dir, "script")
+
         _plan = plan
         begin
-          FileUtils.copy_file(_plan.file_path,
-                              File.join(resultset_dir, File.basename(_plan.file_path)))
+          if _plan == plan # copy main plan file
+            FileUtils.copy_file(_plan.file_path,
+                                File.expand_path(File.basename(_plan.file_path), resultset_dir))
+          else
+            FileUtils.copy_file(_plan.file_path,
+                                File.expand_path(File.basename(_plan.file_path),
+                                               plan_dest_dir))
+          end
+
+          plan.used_scripts.each do |script_path|
+            FileUtils.copy_file(script_path,
+                                File.expand_path(File.basename(script_path),
+                                                 script_dest_dir))
+          end
         end while _plan = _plan.base_plan
 
         params = plan.params.merge(plan.vars)

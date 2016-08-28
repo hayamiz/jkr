@@ -1,6 +1,8 @@
  # -*- mode: ruby -*-
 extend "child"
 
+use_script 'foo-bar-script'
+
 title "grandchild"
 
 def_parameters do

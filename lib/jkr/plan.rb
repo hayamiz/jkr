@@ -18,6 +18,7 @@ module Jkr
 
     attr_accessor :base_plan
     attr_accessor :plan_search_path
+    attr_accessor :used_scripts
 
     attr_accessor :resultset_dir
 
@@ -37,6 +38,7 @@ module Jkr
 
     def initialize(jkr_env, plan_name, options = {})
       @base_plan = nil
+      @used_scripts = []
       @jkr_env = jkr_env
       @metastore = Hash.new
 
@@ -154,8 +156,6 @@ module Jkr
         end
       end
 
-      include Jkr::PlanUtils
-
       def initialize(plan)
         @plan = plan
         @params = nil
@@ -171,6 +171,33 @@ module Jkr
       ## Functions for describing plans in '.plan' files below
       def plan
         @plan
+      end
+
+      def use_script(name)
+        # find script file
+        if name.is_a? Symbol
+          name = name.to_s + ".rb"
+        elsif ! (name =~ /\.rb$/)
+          name += ".rb"
+        end
+
+        path = nil
+        search_dirs = [@plan.jkr_env.jkr_script_dir]
+        while ! search_dirs.empty?
+          dir = search_dirs.shift
+          path = File.expand_path(name, dir)
+
+          if File.exists?(path)
+            break
+          end
+        end
+
+        if path
+          load path
+          @plan.used_scripts.push(path)
+        else
+          raise RuntimeError.new("Cannot use script: #{name}")
+        end
       end
 
       def extend(base_plan_name)

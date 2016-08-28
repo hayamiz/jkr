@@ -133,7 +133,7 @@ describe Jkr::CLI do
                 end.to change(DirFiles.new('jkr/queue'), :size).by(-2)
               end.to change(DirFiles.new('jkr/result'), :size).by(2)
 
-              expect(File.exists?(('jkr/result/00000example/example.plan'))).to eq(true)
+              expect(File.exists?('jkr/result/00000example/example.plan')).to eq(true)
               expect(File.exists?('jkr/result/00001example/example.plan')).to eq(true)
 
               expect(File.read('jkr/result/00000example/00000/output.log')).to include('hello world')
@@ -143,8 +143,6 @@ describe Jkr::CLI do
 
           context "under high-contention" do
             it "should queue 1000 plans correctly" do
-              pending
-              return
               expect do
                 threads = (1..10).map do
                   Thread.new do

@@ -36,18 +36,11 @@ module Jkr
           max_num = [$~[0].to_i, max_num].max
         end
       end
-      
+
       num = max_num + 1
       dir = "#{dir}#{File::SEPARATOR}" + sprintf("%05d%s", num, suffix)
       FileUtils.mkdir(dir)
       dir
-    end
-  end
-
-  module PlanUtils
-    def use_script(name)
-      $LOAD_PATH.push(@plan.jkr_env.jkr_script_dir)
-      require name.to_s
     end
   end
 
