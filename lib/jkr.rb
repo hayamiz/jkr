@@ -13,4 +13,4 @@ require 'jkr/analytics'
 require 'jkr/plot'
 require 'jkr/stat'
 require 'jkr/userutils'
-
+require 'jkr/cli'

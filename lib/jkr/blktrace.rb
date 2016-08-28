@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class Blktrace
     class << self
       def open(input_basename)

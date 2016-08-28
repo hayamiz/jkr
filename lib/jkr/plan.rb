@@ -5,7 +5,7 @@ require 'tempfile'
 require 'net/http'
 require 'fileutils'
 
-class Jkr
+module Jkr
   class Plan
     attr_accessor :title
     attr_accessor :desc

@@ -4,7 +4,7 @@ require 'time'
 require 'date'
 require 'csv'
 
-class Jkr
+module Jkr
   class SysUtils
     def self.cpu_cores()
       self.num_cores()

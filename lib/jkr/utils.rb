@@ -26,7 +26,7 @@ class Barrier
   end
 end
 
-class Jkr
+module Jkr
   class Utils
     def self.reserve_next_dir(dir, suffix = "")
       dirs = Dir.glob("#{dir}#{File::SEPARATOR}???*")

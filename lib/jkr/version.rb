@@ -1,3 +1,3 @@
-class Jkr
+module Jkr
   VERSION = '0.1.0'
 end

@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class Analytics
     class << self
       def normalize_param(key, value = nil)

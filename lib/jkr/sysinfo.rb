@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class SysInfo
     class << self
       def gather

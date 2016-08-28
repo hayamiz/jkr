@@ -11,11 +11,10 @@ describe Jkr::Trial do
       @tmpdir = Dir.mktmpdir
       @env_dir = File.expand_path("test", @tmpdir)
       Dir.mkdir(@env_dir)
-      @jkr_dir = File.expand_path("jkr", @env_dir)
       Dir.chdir(@env_dir) do
-        system(File.expand_path("../../bin/jkr", __FILE__), "init")
+        system(File.expand_path("../../exe/jkr", __FILE__), "init")
       end
-      @jkr_env = @jkr_env = Jkr::Env.new(@env_dir, @jkr_dir)
+      @jkr_env = @jkr_env = Jkr::Env.new(@env_dir)
 
       FileUtils.copy(File.expand_path("parent.plan", FIXTURE_DIR),
                       @jkr_env.jkr_plan_dir)
@@ -46,8 +45,7 @@ end
 describe Jkr::TrialUtils do
   before(:each) do
     env_dir = File.expand_path("sample_env", FIXTURE_DIR)
-    jkr_dir = File.expand_path("jkr", env_dir)
-    @jkr_env = Jkr::Env.new(FIXTURE_DIR, jkr_dir)
+    @jkr_env = Jkr::Env.new(env_dir)
     @plan = Jkr::Plan.new(@jkr_env, "example")
   end
 

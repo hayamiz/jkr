@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class CpuUsageMonitor
     def initialize
       @checkpoint1 = nil

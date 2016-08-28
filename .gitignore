@@ -1,5 +1,4 @@
 /bin/autospec
-/Gemfile.lock
 /bin/htmldiff
 /bin/ldiff
 /bin/rake

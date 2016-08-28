@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class ParameterError < RuntimeError
   end
 end

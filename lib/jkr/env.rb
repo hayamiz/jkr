@@ -1,27 +1,36 @@
 
 require 'fileutils'
+require 'term/ansicolor'
 
-class Jkr
+module Jkr
   class Env
+    include Term::ANSIColor
+
+    attr_reader :env_dir
     attr_reader :jkr_dir
-    attr_reader :working_dir
     attr_reader :jkr_result_dir
     attr_reader :jkr_plan_dir
     attr_reader :jkr_script_dir
     attr_reader :jkr_queue_dir
-    
+
     PLAN_DIR = "plan"
     RESULT_DIR = "result"
     SCRIPT_DIR = "script"
     QUEUE_DIR = "queue"
 
-    def initialize(working_dir = Dir.pwd, jkr_dir = File.join(Dir.pwd, "jkr"))
-      @jkr_dir = jkr_dir
-      @working_dir = working_dir
+    def initialize(env_dir = Dir.pwd)
+      @env_dir = env_dir
+      @jkr_dir = File.join(@env_dir, "jkr")
       @jkr_plan_dir = File.join(@jkr_dir, PLAN_DIR)
       @jkr_result_dir = File.join(@jkr_dir, RESULT_DIR)
       @jkr_script_dir = File.join(@jkr_dir, SCRIPT_DIR)
       @jkr_queue_dir = File.join(@jkr_dir, QUEUE_DIR)
+
+      unless Dir.exists?(@jkr_dir)
+        puts(red("[ERROR] jkr dir not found at #{@env_dir}"))
+        puts(red("        Maybe you are in a wrong directory."))
+        exit(false)
+      end
 
       [@jkr_dir,
        @jkr_result_dir,

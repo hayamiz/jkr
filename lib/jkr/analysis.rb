@@ -1,5 +1,5 @@
 
-class Jkr
+module Jkr
   class Analysis
     def self.analyze(env, resultset_num)
       resultset_num = sprintf "%05d", resultset_num.to_i

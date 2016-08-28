@@ -2,7 +2,7 @@
 
 require 'jkr/array'
 
-class Jkr
+module Jkr
   class Cpufreq
     def self.cpupath(cpu_idx = nil)
       if cpu_idx

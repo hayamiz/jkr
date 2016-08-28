@@ -3,7 +3,7 @@ require 'fileutils'
 require 'json'
 require 'jkr/utils'
 
-class Jkr
+module Jkr
   class Trial
     attr_reader :params
     def self.make_trials(resultset_dir, plan)
