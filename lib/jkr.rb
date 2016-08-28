@@ -14,6 +14,3 @@ require 'jkr/plot'
 require 'jkr/stat'
 require 'jkr/userutils'
 
-class Jkr
-  VERSION = '0.0.1'
-end

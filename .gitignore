@@ -11,3 +11,4 @@
 /bin/guard
 /bin/rake2thor
 /bin/thor
+/pkg/*.gem
