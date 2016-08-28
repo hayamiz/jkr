@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
-require "jkr"
+$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+require 'jkr'
 
 Jkr::CLI.start(ARGV)

@@ -12,69 +12,69 @@ describe Jkr::Plan do
 
   it "should load example.plan" do
     @plan.should_not be_nil
-    @plan.title.should == "example"
+    expect(@plan.title).to eq("example")
   end
 
   it "should respond to base_plan" do
-    @plan.should respond_to :base_plan
+    expect(@plan).to respond_to(:base_plan)
   end
 
   it "should have nil base_plan by default" do
-    @plan.base_plan.should be_nil
+    expect(@plan.base_plan).to eq(nil)
   end
 
   it "should respond to params" do
-    @plan.should respond_to :params
+    expect(@plan).to respond_to(:params)
   end
 
   it "should have param :foo and its value is 123" do
-    @plan.params.should include :foo
-    @plan.params[:foo].should == 123
+    expect(@plan.params).to include(:foo)
+    expect(@plan.params[:foo]).to eq(123)
   end
 
   it "should respond to param_names" do
-    @plan.should respond_to :param_names
+    expect(@plan).to respond_to(:param_names)
   end
 
   it "should return all params by param_names" do
-    @plan.param_names.sort.should == [:foo, :yomiko].sort
+    expect(@plan.param_names.sort).to eq([:foo, :yomiko].sort)
   end
 
   it "should respond to vars" do
-    @plan.should respond_to :params
+    expect(@plan).to respond_to(:params)
   end
 
   it "should have var :baz and its possible values are [:a, :b]" do
-    @plan.vars.should include :baz
-    @plan.vars[:baz].should == [:a, :b]
+    expect(@plan.vars).to include(:baz)
+    expect(@plan.vars[:baz]).to eq([:a, :b])
   end
 
   it "should respond to var_names" do
-    @plan.should respond_to :var_names
+    expect(@plan).to respond_to(:var_names)
   end
 
   it "should return all vars by var_names" do
-    @plan.var_names.sort.should == [:baz, :miss].sort
+    expect(@plan.var_names.sort).to eq([:baz, :miss].sort)
   end
 
   it "should respond to do_prep" do
-    @plan.prep.should be_a Proc
-    @plan.do_prep.should == "this is example.plan's prep"
+    expect(@plan.prep).to be_a(Proc)
+    expect(@plan.do_prep).to eq("this is example.plan's prep")
   end
 
   it "should respond to do_routine" do
-    @plan.routine.should be_a Proc
-    @plan.do_routine(@plan, {}).should == "this is example.plan's routine"
+    expect(@plan.routine).to be_a(Proc)
+    expect(@plan.do_routine(@plan, {})).to eq("this is example.plan's routine")
   end
 
   it "should respond to do_cleanup" do
-    @plan.cleanup.should be_a Proc
-    @plan.do_cleanup.should == "this is example.plan's cleanup"
+    expect(@plan.cleanup).to be_a(Proc)
+    expect(@plan.do_cleanup).to eq("this is example.plan's cleanup")
   end
 
   it "should respond to do_analysis" do
-    @plan.analysis.should be_a Proc
-    @plan.do_analysis.should == "this is example.plan's analysis"
+    expect(@plan.analysis).to be_a(Proc)
+    expect(@plan.do_analysis).to eq("this is example.plan's analysis")
   end
 
   describe "do_prep" do
@@ -83,8 +83,7 @@ describe Jkr::Plan do
         @plan == plan
       end
       pseudo_plan = Object.new
-
-      @plan.do_prep(pseudo_plan).should be_false
+      expect(@plan.do_prep(pseudo_plan)).to eq(false)
     end
   end
 
@@ -94,90 +93,90 @@ describe Jkr::Plan do
     end
 
     it "should be a child of example" do
-      @plan.title.should == "child of example"
+      expect(@plan.title).to eq("child of example")
     end
 
     it "should overwrite param :foo" do
-      @plan.params[:foo].should == 456
+      expect(@plan.params[:foo]).to eq(456)
     end
 
     it "should overwrite var :baz" do
-      @plan.vars[:baz].should == [:c, :d]
+      expect(@plan.vars[:baz]).to eq([:c, :d])
     end
 
     it "should return all params by param_names" do
-      @plan.param_names.sort.should == [:foo, :yomiko].sort
+      expect(@plan.param_names.sort).to eq([:foo, :yomiko].sort)
     end
 
     it "should return all vars by var_names" do
-      @plan.var_names.sort.should == [:baz, :miss].sort
+      expect(@plan.var_names.sort).to eq([:baz, :miss].sort)
     end
 
     it "should have base_plan" do
       @plan.should_not be_nil
-      @plan.base_plan.should be_a Jkr::Plan
-      @plan.base_plan.title.should == "example"
+      expect(@plan.base_plan).to be_a(Jkr::Plan)
+      expect(@plan.base_plan.title).to eq("example")
     end
 
     it "should call: base's prep -> child's prep" do
       $call_order = []
-      @plan.do_prep().should == "this is child_of_example.plan's prep"
-      $call_order.should == ["example", "child_of_example"]
+      expect(@plan.do_prep()).to eq("this is child_of_example.plan's prep")
+      expect($call_order).to eq(["child_of_example", "example"])
     end
 
     it "should call: base's routine -> child's routine" do
       $call_order = []
-      @plan.do_routine(@plan, {}).should == "this is child_of_example.plan's routine"
-      $call_order.should == ["example", "child_of_example"]
+      expect(@plan.do_routine(@plan, {})).to eq("this is child_of_example.plan's routine")
+      expect($call_order).to eq(["child_of_example", "example"])
     end
 
     it "should call: base's cleanup -> child's cleanup" do
       $call_order = []
-      @plan.do_cleanup().should == "this is child_of_example.plan's cleanup"
-      $call_order.should == ["example", "child_of_example"]
+      expect(@plan.do_cleanup()).to eq("this is child_of_example.plan's cleanup")
+      expect($call_order).to eq(["child_of_example", "example"])
     end
 
     it "should call: base's analysis -> child's analysis" do
       $call_order = []
-      @plan.do_analysis().should == "this is child_of_example.plan's analysis"
-      $call_order.should == ["example", "child_of_example"]
+      expect(@plan.do_analysis()).to eq("this is child_of_example.plan's analysis")
+      expect($call_order).to eq(["child_of_example", "example"])
     end
 
     it "should raise error with param not defined in its base" do
-      lambda do
+      expect do
         Jkr::Plan.new(@jkr_env, "child_of_example_invalparam")
-      end.should raise_error(Jkr::ParameterError)
+      end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with var not defined in its base" do
-      lambda do
+      expect do
         Jkr::Plan.new(@jkr_env, "child_of_example_invalvar")
-      end.should raise_error(Jkr::ParameterError)
+      end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with param overwriting var" do
-      lambda do
+      expect do
         Jkr::Plan.new(@jkr_env, "child_of_example_val_param")
-      end.should raise_error(Jkr::ParameterError)
+      end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with var overwriting param" do
-      lambda do
+      expect do
         Jkr::Plan.new(@jkr_env, "child_of_example_param_val")
-      end.should raise_error(Jkr::ParameterError)
+      end.to raise_error(Jkr::ParameterError)
     end
   end
 
   it "should raise error with var overwriting param" do
-    lambda do
+    expect do
       Jkr::Plan.new(@jkr_env, "example_param_var")
-    end.should raise_error(Jkr::ParameterError)
+    end.to raise_error(Jkr::ParameterError)
   end
 
   it "should raise error with const overwriting var" do
-    lambda do
+    expect do
       Jkr::Plan.new(@jkr_env, "example_var_param")
-    end.should raise_error(Jkr::ParameterError)
+    end.to raise_error(Jkr::ParameterError)
   end
 
   describe "who is grandchild" do
@@ -186,16 +185,16 @@ describe Jkr::Plan do
       @env_dir = File.expand_path("test", @tmpdir)
       Dir.mkdir(@env_dir)
       Dir.chdir(@env_dir) do
-        system(File.expand_path("../../bin/jkr", __FILE__), "init")
+        system(File.expand_path("../../exe/jkr", __FILE__), "init")
       end
       @jkr_env = @jkr_env = Jkr::Env.new(@env_dir)
 
       FileUtils.copy(File.expand_path("parent.plan", FIXTURE_DIR),
-                      @jkr_env.jkr_plan_dir)
+                     @jkr_env.jkr_plan_dir)
       FileUtils.copy(File.expand_path("child.plan", FIXTURE_DIR),
-                      @jkr_env.jkr_plan_dir)
+                     @jkr_env.jkr_plan_dir)
       FileUtils.copy(File.expand_path("grandchild.plan", FIXTURE_DIR),
-                      @jkr_env.jkr_plan_dir)
+                     @jkr_env.jkr_plan_dir)
 
       @plan = Jkr::Plan.new(@jkr_env, "grandchild")
     end
@@ -212,12 +211,11 @@ describe Jkr::Plan do
       FileUtils.rm(File.expand_path("child.plan", @jkr_env.jkr_plan_dir))
       FileUtils.rm(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir))
 
-
-      lambda do
+      expect do
         Jkr::Plan.new(@jkr_env, nil,
                       :plan_path => File.expand_path("grandchild.plan", tmp_plandir),
                       :plan_search_path => tmp_plandir)
-      end.should_not raise_error
+      end.to_not raise_error
     end
   end
 

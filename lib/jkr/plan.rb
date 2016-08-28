@@ -128,8 +128,10 @@ module Jkr
         self.base_plan.do_analysis(plan)
       else
         Jkr::AnalysisUtils.define_analysis_utils(resultset_dir, self)
-        self.analysis.call(plan)
+        ret = self.analysis.call(plan)
         Jkr::AnalysisUtils.undef_analysis_utils(self)
+
+        ret
       end
     end
 

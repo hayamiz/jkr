@@ -4,8 +4,6 @@ require 'term/ansicolor'
 
 module Jkr
   class Env
-    include Term::ANSIColor
-
     attr_reader :env_dir
     attr_reader :jkr_dir
     attr_reader :jkr_result_dir
@@ -27,9 +25,7 @@ module Jkr
       @jkr_queue_dir = File.join(@jkr_dir, QUEUE_DIR)
 
       unless Dir.exists?(@jkr_dir)
-        puts(red("[ERROR] jkr dir not found at #{@env_dir}"))
-        puts(red("        Maybe you are in a wrong directory."))
-        exit(false)
+        raise Errno::ENOENT.new(@jkr_dir)
       end
 
       [@jkr_dir,

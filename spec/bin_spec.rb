@@ -2,7 +2,6 @@
 require 'spec_helper'
 
 ENV['RUBYLIB'] = File.expand_path('../../lib', __FILE__)
-load File.expand_path('../../bin/jkr', __FILE__)
 
 class DirFiles
   def initialize(dir)
@@ -14,13 +13,13 @@ class DirFiles
   end
 end
 
-def jkr(*argv)
-  JkrCmd.new.dispatch(argv)
-end
-
-describe JkrCmd do
+describe Jkr::CLI do
   before(:each) do
-    @jkr_cmd = File.expand_path('../../bin/jkr', __FILE__)
+    @jkr_cmd = File.expand_path('../../exe/jkr', __FILE__)
+  end
+
+  def jkr(*argv)
+    system("#{@jkr_cmd}", *argv)
   end
 
   it "should be executable" do
@@ -36,28 +35,23 @@ describe JkrCmd do
 
     describe "'list' subcommand" do
       it "should fail" do
-        lambda do
-          jkr("list")
-        end.should raise_error
+        expect(jkr("list")).to eq(false)
       end
     end
 
-    describe "'run' subcommand" do
+    describe "'execute' subcommand" do
       it "should fail" do
-        lambda do
-          jkr("run")
-        end
+        expect(jkr("execute")).to eq(false)
       end
     end
 
     describe "'init' subcommand" do
       it "should create skeleton dirs" do
-        jkr("init").should be_true
-        File.directory?(File.expand_path('jkr', @tmpdir)).should be_true
-        File.directory?(File.expand_path('jkr/plan', @tmpdir)).should be_true
-        File.directory?(File.expand_path('jkr/script', @tmpdir)).should be_true
-        File.directory?(File.expand_path('jkr/result', @tmpdir)).should be_true
-        File.directory?(File.expand_path('jkr/queue', @tmpdir)).should be_true
+        expect(system("#{@jkr_cmd} init")).to eq(true)
+
+        ['jkr', 'jkr/plan', 'jkr/result', 'jkr/queue'].each do |dirname|
+          expect(File.directory?(File.expand_path('jkr', @tmpdir))).to eq(true)
+        end
       end
     end
 
@@ -75,10 +69,10 @@ describe JkrCmd do
 
       describe "'list' subcommand" do
         it "should success" do
-          jkr("list").should be_true
+          expect(system("#{@jkr_cmd} list")).to eq(true)
         end
       end
-      
+
       context "with example plan" do
         before(:each) do
           FileUtils.copy(fixture_path('example.plan'), 'jkr/plan/')
@@ -87,69 +81,69 @@ describe JkrCmd do
         it "should have no results at first" do
           Dir.glob('jkr/result/*').should be_empty
         end
-        
+
         describe "'list' subcommand" do
           it "should include 'example' plan" do
             output = `#{@jkr_cmd} list`
             output.should include("example") #title
           end
         end
-        
-        describe "'run' subcommand" do
+
+        describe "'execute' subcommand" do
           it "should create a result dir" do
-            lambda do
-              jkr("run", "example").should be_true
-            end.should change(DirFiles.new('jkr/result'), :size).by(1)
+            expect do
+              expect(system("#{@jkr_cmd} execute example")).to eq(true)
+            end.to change(DirFiles.new('jkr/result'), :size).by(1)
 
             dir = Dir.glob('jkr/result/*').first
             File.basename(dir).should == "00000example"
-            File.exists?('jkr/result/00000example/00000/output.log').should be_true
-            File.open('jkr/result/00000example/00000/output.log').read.should include("hello world")
+            expect(File.exists?('jkr/result/00000example/00000/output.log')).to eq(true)
+            expect(File.open('jkr/result/00000example/00000/output.log').read).to include("hello world")
           end
         end
 
         describe "'queue' subcommand" do
           it "should success" do
-            jkr("queue", "example").should be_true
+            expect(jkr("queue", "example")).to eq(true)
           end
 
           it "should copy a plan file into queue dir" do
-            jkr("queue", "example").should be_true
+            expect(jkr("queue", "example")).to eq(true)
 
-            Dir.glob('jkr/queue/*').size.should == 1
+            expect(Dir.glob('jkr/queue/*').size).to eq(1)
             dir = Dir.glob('jkr/queue/*').sort.first
-            File.basename(dir).should == "00000.example.plan"
+            expect(File.basename(dir)).to eq("00000.example.plan")
 
-            jkr("queue", "example").should be_true
-            Dir.glob('jkr/queue/*').size.should == 2
+            expect(jkr("queue", "example")).to eq(true)
+            expect(Dir.glob('jkr/queue/*').size).to eq(2)
             dir = Dir.glob('jkr/queue/*').sort[1]
-            File.basename(dir).should == "00001.example.plan"
+            expect(File.basename(dir)).to eq("00001.example.plan")
           end
 
-          context "'run' after 'queue'" do
+          context "'execute' after 'queue'" do
             before(:each) do
               jkr("queue", "example")
               jkr("queue", "example")
             end
 
-            it "should run queued plans" do
-              lambda do
-                lambda do
-                  jkr("run").should be_true
-                end.should change(DirFiles.new('jkr/queue'), :size).by(-2)
-              end.should change(DirFiles.new('jkr/result'), :size).by(2)
+            it "should execute queued plans" do
+              expect do
+                expect do
+                  expect(jkr("execute")).to eq(true)
+                end.to change(DirFiles.new('jkr/queue'), :size).by(-2)
+              end.to change(DirFiles.new('jkr/result'), :size).by(2)
 
-              File.exists?('jkr/result/00000example/example.plan').should be_true
-              File.exists?('jkr/result/00001example/example.plan').should be_true
+              expect(File.exists?(('jkr/result/00000example/example.plan'))).to eq(true)
+              expect(File.exists?('jkr/result/00001example/example.plan')).to eq(true)
 
-              File.read('jkr/result/00000example/00000/output.log').should include('hello world')
-              File.read('jkr/result/00001example/00000/output.log').should include('hello world')
+              expect(File.read('jkr/result/00000example/00000/output.log')).to include('hello world')
+              expect(File.read('jkr/result/00001example/00000/output.log')).to include('hello world')
             end
           end
 
           context "under high-contention" do
             it "should queue 1000 plans correctly" do
-              lambda do
+              expect do
                 threads = (1..10).map do
                   Thread.new do
                     100.times do
@@ -158,7 +152,7 @@ describe JkrCmd do
                   end
                 end
                 threads.map(&:join)
-              end.should change(DirFiles.new('jkr/queue'), :size).by(1000)
+              end.to change(DirFiles.new('jkr/queue'), :size).by(1000)
             end
           end
         end

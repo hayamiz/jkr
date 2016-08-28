@@ -1,9 +1,16 @@
 require 'thor'
+require 'term/ansicolor'
 
 module Jkr
   class CLI < ::Thor
+    include Term::ANSIColor
+
     class_option :debug, :type => :boolean
     class_option :directory, :type => :string, :default => Dir.pwd, :aliases => :C
+
+    def self.exit_on_failure?
+      true
+    end
 
     desc "init", "Initialize a Jkr environment"
     def init()
@@ -37,7 +44,13 @@ module Jkr
 
     desc "list", "List executable plans"
     def list()
-      @jkr_env = Jkr::Env.new(options[:directory])
+      begin
+        @jkr_env = Jkr::Env.new(options[:directory])
+      rescue Errno::ENOENT
+        puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
+        puts(red("        Maybe you are in a wrong directory."))
+        exit(false)
+      end
 
       plans = @jkr_env.plans.map do |plan_file_path|
         plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file_path)
@@ -61,17 +74,20 @@ module Jkr
     end
 
     desc "execute <plan> [<plan> ...]", "Execute plans"
-    def execute(plan_name, *plan_names)
+    def execute(*plan_names)
       @jkr_env = Jkr::Env.new(options[:directory])
 
-      plan_file = find_plan_file(plan_name)
+      if plan_names.size > 0
+        plan_name = plan_names.first
+        plan_file = find_plan_file(plan_name)
 
-      unless plan_file
-        raise ArgumentError.new("No such plan: #{plan_name}")
+        unless plan_file
+          raise ArgumentError.new("No such plan: #{plan_name}")
+        end
+
+        plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
+        Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
       end
-
-      plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
-      Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
 
       # run queued plans
 
@@ -130,6 +146,33 @@ module Jkr
           plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file)
           Jkr::Trial.run(@jkr_env, plan, @options[:delete_files_on_error])
         end
+      end
+    end
+
+    desc "queue <plan>", "Push a plan into the execution queue"
+    def queue(plan_name)
+      @jkr_env = Jkr::Env.new(options[:directory])
+
+      DirLock.lock(@jkr_env.jkr_queue_dir) do
+        queue_ids = Dir.glob(File.expand_path('*.plan', @jkr_env.jkr_queue_dir)).map do |plan_file|
+          if File.basename(plan_file) =~ /\A(\d{5})\./
+            $~[1].to_i
+          else
+            nil
+          end
+        end.compact
+        next_queue_id = ([-1] + queue_ids).max + 1
+
+        plan_file = find_plan_file(plan_name)
+
+        unless plan_file
+         raise ArgumentError.new("No such plan: #{plan_name}")
+        end
+
+        FileUtils.copy(plan_file,
+                       File.expand_path(sprintf("%05d.%s", next_queue_id,
+                                                File.basename(plan_file)),
+                                        @jkr_env.jkr_queue_dir))
       end
     end
 

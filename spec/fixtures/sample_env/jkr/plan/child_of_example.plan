@@ -16,20 +16,24 @@ end
 
 def_prep do |plan|
   $call_order.push("child_of_example")
+  super_prep(plan)
   "this is child_of_example.plan's prep"
 end
 
 def_routine do |plan, params|
   $call_order.push("child_of_example")
+  super_routine(plan, params)
   "this is child_of_example.plan's routine"
 end
 
 def_cleanup do |plan|
   $call_order.push("child_of_example")
+  super_cleanup(plan)
   "this is child_of_example.plan's cleanup"
 end
 
 def_analysis do |plan|
   $call_order.push("child_of_example")
+  super_analysis(plan)
   "this is child_of_example.plan's analysis"
 end
