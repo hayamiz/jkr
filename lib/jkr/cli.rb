@@ -39,12 +39,20 @@ module Jkr
     def list()
       @jkr_env = Jkr::Env.new(options[:directory])
 
-      puts "Existing plans:"
-      puts
       plans = @jkr_env.plans.map do |plan_file_path|
         plan = Jkr::Plan.new(@jkr_env, nil, :plan_path => plan_file_path)
         [File.basename(plan_file_path, ".plan"), plan.title]
       end
+
+      if ENV["JKR_ZSHCOMP_HELPER"]
+        plans.each do |plan_name, plan_title|
+          puts "#{plan_name}[#{plan_title}]"
+        end
+        return
+      end
+
+      puts "Existing plans:"
+      puts
       maxlen = plans.map{|plan| plan[0].size}.max
       plans.each do |plan|
         printf(" %#{maxlen}s : %s\n", plan[0], plan[1])
