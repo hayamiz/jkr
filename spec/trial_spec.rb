@@ -35,9 +35,10 @@ describe Jkr::Trial do
 
     it "should copy all ancestor plan files when run" do
       Jkr::Trial.run(@jkr_env, @plan)
-      %w!scripts/parent.plan scripts/child.plan grandchild.plan!.each do |filename|
-        expect(File.exists?(File.expand_path(filename,
-                                             @plan.resultset_dir))).to eq(true)
+      ['plan/parent.plan', 'plan/child.plan',
+       'plan/grandchild.plan', 'script/foo-bar-script.rb'].each do |filename|
+        expect(File).to exist(File.expand_path(filename,
+                                               @plan.resultset_dir))
       end
     end
   end
