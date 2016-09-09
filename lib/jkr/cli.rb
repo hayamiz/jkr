@@ -134,7 +134,7 @@ module Jkr
         Dir.mktmpdir do |tmpdir|
           plan_file = nil
 
-          DirLock.lock(@jkr_env.jkr_queue_dir) do
+          Dir.lock(@jkr_env.jkr_queue_dir) do
             queued_plans = Dir.glob(File.expand_path('*.plan',
                                                      @jkr_env.jkr_queue_dir))
             if queued_plans.empty?
@@ -159,7 +159,7 @@ module Jkr
     def queue(plan_name)
       @jkr_env = Jkr::Env.new(options[:directory])
 
-      DirLock.lock(@jkr_env.jkr_queue_dir) do
+      Dir.lock(@jkr_env.jkr_queue_dir) do
         queue_ids = Dir.glob(File.expand_path('*.plan', @jkr_env.jkr_queue_dir)).map do |plan_file|
           if File.basename(plan_file) =~ /\A(\d{5})\./
             $~[1].to_i
@@ -200,13 +200,4 @@ module Jkr
     end
   end
 
-  class DirLock
-    def self.lock(dir_path)
-      File.open(File.expand_path('.lock', dir_path),
-                File::RDWR | File::CREAT) do |f|
-        f.flock(File::LOCK_EX)
-        yield
-      end
-    end
-  end
-end
+end # Jkr
