@@ -1,0 +1,21 @@
+# -*- mode: ruby -*-
+
+title "parent of example"
+description "this is a parent of an example."
+short_desc ""
+
+def_parameters do
+  constant :c => true
+end
+
+def_prep do |plan|
+end
+
+def_routine do |plan, params|
+end
+
+def_cleanup do |plan|
+end
+
+def_analysis do |plan|
+end

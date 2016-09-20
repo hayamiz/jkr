@@ -25,7 +25,7 @@ describe Jkr::Trial do
       FileUtils.copy(File.expand_path("foo-bar-script.rb", FIXTURE_DIR),
                      @jkr_env.jkr_script_dir)
 
-      @plan = Jkr::Plan.new(@jkr_env, "grandchild")
+      @plan = Jkr::Plan.create_by_name(@jkr_env, "grandchild")
     end
 
     it "should create resultset dir by run" do
@@ -44,20 +44,45 @@ describe Jkr::Trial do
       end
     end
   end
+
+  it "should save extending plans and used scripts" do
+    env_dir = File.expand_path("use_extend_sample", FIXTURE_DIR)
+    jkr_cmd = File.expand_path('../exe/jkr', __dir__)
+
+    tmpdir = Dir.mktmpdir
+    FileUtils.cp_r(env_dir, tmpdir)
+
+    Dir.chdir("#{tmpdir}/#{File.basename(env_dir)}") do
+      # run example.plan
+      expect(system(jkr_cmd, "execute", "example")).to eq(true)
+
+      # pick a result file
+      ret_dir = Dir["./jkr/result/00000*"].first
+      expect(ret_dir).not_to eq(nil)
+
+      # check copied files
+      ["example.plan", "plan/parent.plan", "script/example_script.rb"].each do |file|
+        path = File.expand_path(file, ret_dir)
+        expect(File).to exist(path)
+      end
+    end
+  end
 end
 
 describe Jkr::TrialUtils do
   before(:each) do
     env_dir = File.expand_path("sample_env", FIXTURE_DIR)
     @jkr_env = Jkr::Env.new(env_dir)
-    @plan = Jkr::Plan.new(@jkr_env, "example")
+    @plan = Jkr::Plan.create_by_name(@jkr_env, "example")
   end
 
   it "should define plan#result_file_name" do
     expect do
       @plan.routine.binding.eval('result_file_name("foo")')
-    end.to raise_error
+    end.to raise_error(NoMethodError)
+
     Jkr::TrialUtils.define_routine_utils('test_result_dir', @plan, {})
+
     expect do
       @plan.routine.binding.eval('result_file_name("foo")')
     end.not_to raise_error
@@ -65,7 +90,7 @@ describe Jkr::TrialUtils do
 
   describe "with inheritance" do
     before(:each) do
-      @plan = Jkr::Plan.new(@jkr_env, "child_of_example")
+      @plan = Jkr::Plan.create_by_name(@jkr_env, "child_of_example")
     end
 
 

@@ -5,7 +5,7 @@ describe Jkr::Plan do
   before(:each) do
     env_dir = File.expand_path("sample_env", FIXTURE_DIR)
     @jkr_env = Jkr::Env.new(env_dir)
-    @plan = Jkr::Plan.new(@jkr_env, "example")
+    @plan = Jkr::Plan.create_by_name(@jkr_env, "example")
 
     $call_order = []
   end
@@ -89,7 +89,7 @@ describe Jkr::Plan do
 
   describe "with plan inheritance" do
     before(:each) do
-      @plan = Jkr::Plan.new(@jkr_env, "child_of_example")
+      @plan = Jkr::Plan.create_by_name(@jkr_env, "child_of_example")
     end
 
     it "should be a child of example" do
@@ -144,38 +144,38 @@ describe Jkr::Plan do
 
     it "should raise error with param not defined in its base" do
       expect do
-        Jkr::Plan.new(@jkr_env, "child_of_example_invalparam")
+        Jkr::Plan.create_by_name(@jkr_env, "child_of_example_invalparam")
       end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with var not defined in its base" do
       expect do
-        Jkr::Plan.new(@jkr_env, "child_of_example_invalvar")
+        Jkr::Plan.create_by_name(@jkr_env, "child_of_example_invalvar")
       end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with param overwriting var" do
       expect do
-        Jkr::Plan.new(@jkr_env, "child_of_example_val_param")
+        Jkr::Plan.create_by_name(@jkr_env, "child_of_example_val_param")
       end.to raise_error(Jkr::ParameterError)
     end
 
     it "should raise error with var overwriting param" do
       expect do
-        Jkr::Plan.new(@jkr_env, "child_of_example_param_val")
+        Jkr::Plan.create_by_name(@jkr_env, "child_of_example_param_val")
       end.to raise_error(Jkr::ParameterError)
     end
   end
 
   it "should raise error with var overwriting param" do
     expect do
-      Jkr::Plan.new(@jkr_env, "example_param_var")
+      Jkr::Plan.create_by_name(@jkr_env, "example_param_var")
     end.to raise_error(Jkr::ParameterError)
   end
 
   it "should raise error with const overwriting var" do
     expect do
-      Jkr::Plan.new(@jkr_env, "example_var_param")
+      Jkr::Plan.create_by_name(@jkr_env, "example_var_param")
     end.to raise_error(Jkr::ParameterError)
   end
 
@@ -198,26 +198,7 @@ describe Jkr::Plan do
       FileUtils.copy(File.expand_path("foo-bar-script.rb", FIXTURE_DIR),
                      @jkr_env.jkr_script_dir)
 
-      @plan = Jkr::Plan.new(@jkr_env, "grandchild")
-    end
-
-    it "should be able to load ancestors from specified dir" do
-      tmp_plandir = Dir.mktmpdir
-      FileUtils.copy(File.expand_path("parent.plan", @jkr_env.jkr_plan_dir),
-                     tmp_plandir)
-      FileUtils.copy(File.expand_path("child.plan", @jkr_env.jkr_plan_dir),
-                     tmp_plandir)
-      FileUtils.copy(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir),
-                     tmp_plandir)
-      FileUtils.rm(File.expand_path("parent.plan", @jkr_env.jkr_plan_dir))
-      FileUtils.rm(File.expand_path("child.plan", @jkr_env.jkr_plan_dir))
-      FileUtils.rm(File.expand_path("grandchild.plan", @jkr_env.jkr_plan_dir))
-
-      expect do
-        Jkr::Plan.new(@jkr_env, nil,
-                      :plan_path => File.expand_path("grandchild.plan", tmp_plandir),
-                      :plan_search_path => tmp_plandir)
-      end.to_not raise_error
+      @plan = Jkr::Plan.create_by_name(@jkr_env, "grandchild")
     end
   end
 

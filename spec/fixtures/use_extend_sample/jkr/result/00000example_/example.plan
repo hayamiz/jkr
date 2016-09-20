@@ -1,0 +1,24 @@
+# -*- mode: ruby -*-
+
+title "example"
+description "this is an example."
+short_desc ""
+
+use_script "example_script"
+extend "parent"
+
+def_parameters do
+  constant :c => true
+end
+
+def_prep do |plan|
+end
+
+def_routine do |plan, params|
+end
+
+def_cleanup do |plan|
+end
+
+def_analysis do |plan|
+end

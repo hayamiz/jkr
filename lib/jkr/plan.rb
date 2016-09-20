@@ -18,6 +18,7 @@ module Jkr
 
     attr_accessor :base_plan
     attr_accessor :plan_search_path
+    attr_accessor :script_search_path
     attr_accessor :used_scripts
 
     attr_accessor :resultset_dir
@@ -33,46 +34,15 @@ module Jkr
 
     attr_accessor :src
 
-    attr_reader :file_path
+    attr_accessor :file_path
     attr_reader :jkr_env
 
-    def initialize(jkr_env, plan_name, options = {})
+    private_class_method :new
+    def initialize(jkr_env)
       @base_plan = nil
       @used_scripts = []
       @jkr_env = jkr_env
       @metastore = Hash.new
-
-      if options[:plan_search_path].is_a? String
-        options[:plan_search_path] = [options[:plan_search_path]]
-      end
-      @plan_search_path = [@jkr_env.jkr_plan_dir]
-      if options[:plan_search_path]
-        @plan_search_path = options[:plan_search_path] + @plan_search_path
-      end
-
-      if options[:plan_path]
-        @file_path = options[:plan_path]
-      else
-        if ! plan_name
-          raise ArgumentError.new("plan_name is required.")
-        end
-
-        plan_candidates = @plan_search_path.map do |dir|
-          File.expand_path("#{plan_name}.plan", dir)
-        end
-
-        @file_path = plan_candidates.find do |path|
-          File.exists?(path)
-        end
-
-        if ! @file_path
-          raise ArgumentError.new("No such plan: #{plan_name}")
-        end
-      end
-
-      if ! File.exists?(@file_path)
-        raise Errno::ENOENT.new(@file_path)
-      end
 
       @title = "no title"
       @desc = "no desc"
@@ -88,8 +58,50 @@ module Jkr
       @param_filters = []
 
       @src = nil
+    end
 
-      PlanLoader.load_plan(self)
+    def self.create_by_name(jkr_env, plan_name, options = {})
+      plan = new(jkr_env)
+
+      if options[:plan_search_path]
+        plan.plan_search_path = options[:plan_search_path]
+      else
+        plan.plan_search_path = [plan.jkr_env.jkr_plan_dir]
+      end
+
+      if options[:script_search_path]
+        plan.script_search_path = options[:script_search_path]
+      else
+        plan.script_search_path = [plan.jkr_env.jkr_script_dir]
+      end
+
+      finder = PlanFinder.new(jkr_env)
+      plan.file_path = finder.find_by_name(plan_name,
+                                           :plan_search_path => plan.plan_search_path)
+      unless plan.file_path
+        raise ArgumentError.new("No such plan: #{plan_name}")
+      end
+
+      PlanLoader.load_plan(plan)
+
+      plan
+    end
+
+    def self.create_by_result_id(jkr_env, ret_id, options = {})
+      plan = new(jkr_env)
+
+      plan.plan_search_path = [File.expand_path("../plan", plan.file_path)]
+      plan.script_search_path = [File.expand_path("../script", plan.file_path)]
+
+      finder = PlanFinder.new(jkr_env)
+      plan.file_path = finder.find_by_result_id(ret_id)
+      unless plan.file_path
+        raise ArgumentError.new("Not valid result ID: #{ret_id}")
+      end
+
+      PlanLoader.load_plan(plan)
+
+      plan
     end
 
     def param_names
@@ -201,8 +213,9 @@ module Jkr
       end
 
       def extend(base_plan_name)
-        base_plan = Plan.new(self.plan.jkr_env, base_plan_name.to_s,
-                             :plan_search_path => @plan.plan_search_path)
+        base_plan = Plan.create_by_name(self.plan.jkr_env, base_plan_name.to_s,
+                                        :plan_search_path => @plan.plan_search_path,
+                                        :script_search_path => @plan.script_search_path)
         self.plan.base_plan = base_plan
 
         @plan.params.merge!(base_plan.params)

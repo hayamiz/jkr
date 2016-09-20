@@ -49,7 +49,7 @@ describe Jkr::CLI do
       it "should create skeleton dirs" do
         expect(system("#{@jkr_cmd} init")).to eq(true)
 
-        ['jkr', 'jkr/plan', 'jkr/result', 'jkr/queue'].each do |dirname|
+        ['jkr', 'jkr/plan', 'jkr/result'].each do |dirname|
           expect(File.directory?(File.expand_path('jkr', @tmpdir))).to eq(true)
         end
       end
@@ -60,7 +60,6 @@ describe Jkr::CLI do
         FileUtils.mkdir_p(File.expand_path('jkr/plan', @tmpdir))
         FileUtils.mkdir_p(File.expand_path('jkr/script', @tmpdir))
         FileUtils.mkdir_p(File.expand_path('jkr/result', @tmpdir))
-        FileUtils.mkdir_p(File.expand_path('jkr/queue', @tmpdir))
       end
 
       after(:each) do
@@ -103,6 +102,7 @@ describe Jkr::CLI do
         end
 
         describe "'queue' subcommand" do
+          skip "is skipped" do
           it "should success" do
             expect(jkr("queue", "example")).to eq(true)
           end
@@ -140,21 +140,21 @@ describe Jkr::CLI do
               expect(File.read('jkr/result/00001example/00000/output.log')).to include('hello world')
             end
           end
-
-          context "under high-contention" do
-            it "should queue 1000 plans correctly" do
-              expect do
-                threads = (1..10).map do
-                  Thread.new do
-                    100.times do
-                      jkr("queue", "example")
-                    end
-                  end
-                end
-                threads.map(&:join)
-              end.to change(DirFiles.new('jkr/queue'), :size).by(1000)
-            end
           end
+          # context "under high-contention" do
+          #   it "should queue 1000 plans correctly" do
+          #     expect do
+          #       threads = (1..10).map do
+          #         Thread.new do
+          #           100.times do
+          #             jkr("queue", "example")
+          #           end
+          #         end
+          #       end
+          #       threads.map(&:join)
+          #     end.to change(DirFiles.new('jkr/queue'), :size).by(1000)
+          #   end
+          # end
         end
       end
     end
