@@ -38,9 +38,5 @@ module Jkr
         end
       end
     end
-
-    def plans
-      Dir.glob("#{@jkr_plan_dir}#{File::SEPARATOR}*.plan").sort
-    end
   end
 end
