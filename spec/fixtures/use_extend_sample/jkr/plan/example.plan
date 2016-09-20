@@ -21,4 +21,5 @@ def_cleanup do |plan|
 end
 
 def_analysis do |plan|
+  example_func
 end

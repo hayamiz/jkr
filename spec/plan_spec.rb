@@ -203,3 +203,31 @@ describe Jkr::Plan do
   end
 
 end
+
+describe Jkr::Plan do
+  before(:each) do
+    @env_dir = mktmp_fixture_copy("use_extend_sample")
+    @jkr_env = Jkr::Env.new(@env_dir)
+  end
+
+  it "should load executed plan file correctly" do
+    plan = Jkr::Plan.create_by_result_id(@jkr_env, 0)
+    expect(plan.params[:this_is_executed_parent]).to eq(false)
+    expect(plan.params[:this_is_executed_example]).to eq(true)
+
+    expect(plan.base_plan.params[:this_is_executed_parent]).to eq(true)
+    expect(plan.base_plan.params[:this_is_executed_example]).to eq(false)
+  end
+
+  it "should load prepared script correctly" do
+    plan = Jkr::Plan.create_by_name(@jkr_env, "example")
+
+    expect(plan.do_analysis()).to eq(:prepared_script)
+  end
+
+  it "should load executed script file correctly" do
+    plan = Jkr::Plan.create_by_result_id(@jkr_env, 0)
+
+    expect(plan.do_analysis()).to eq(:executed_script)
+  end
+end

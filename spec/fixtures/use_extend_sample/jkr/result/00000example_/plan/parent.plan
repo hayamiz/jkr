@@ -6,6 +6,9 @@ short_desc ""
 
 def_parameters do
   constant :c => true
+
+  constant :this_is_executed_parent => true
+  constant :this_is_executed_example => false
 end
 
 def_prep do |plan|

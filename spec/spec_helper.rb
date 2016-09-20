@@ -17,7 +17,7 @@ RSpec.configure do |config|
 
   def mktmp_fixture_copy(fixture_name)
     tmpdir = Dir.mktmpdir
-    FileUtils.cp(fixture_path(fixture_name), tmpdir)
+    FileUtils.cp_r(fixture_path(fixture_name), tmpdir)
     File.expand_path(fixture_name, tmpdir)
   end
 end

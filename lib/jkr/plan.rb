@@ -89,12 +89,12 @@ module Jkr
 
     def self.create_by_result_id(jkr_env, ret_id, options = {})
       plan = new(jkr_env)
+      finder = PlanFinder.new(jkr_env)
+      plan.file_path = finder.find_by_result_id(ret_id)
 
       plan.plan_search_path = [File.expand_path("../plan", plan.file_path)]
       plan.script_search_path = [File.expand_path("../script", plan.file_path)]
 
-      finder = PlanFinder.new(jkr_env)
-      plan.file_path = finder.find_by_result_id(ret_id)
       unless plan.file_path
         raise ArgumentError.new("Not valid result ID: #{ret_id}")
       end
@@ -194,7 +194,7 @@ module Jkr
         end
 
         path = nil
-        search_dirs = [@plan.jkr_env.jkr_script_dir]
+        search_dirs = @plan.script_search_path
         while ! search_dirs.empty?
           dir = search_dirs.shift
           path = File.expand_path(name, dir)
