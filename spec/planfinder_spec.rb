@@ -3,11 +3,13 @@ require 'spec_helper'
 
 describe Jkr::PlanFinder do
   before(:each) do
-    @env_dir = File.expand_path("sample_env", FIXTURE_DIR)
+    tmpdir = Dir.mktmpdir
+    FileUtils.cp_r(File.expand_path("sample_env", FIXTURE_DIR), tmpdir)
+    @env_dir = File.expand_path("sample_env", tmpdir)
     @jkr_env = Jkr::Env.new(@env_dir)
     @finder = Jkr::PlanFinder.new(@jkr_env)
 
-    @example_plan_path = File.expand_path("sample_env/jkr/plan/example.plan", FIXTURE_DIR)
+    @example_plan_path = File.expand_path("jkr/plan/example.plan", @env_dir)
   end
 
   describe "#find_* method" do
@@ -15,11 +17,14 @@ describe Jkr::PlanFinder do
       expect(@finder.find_by_name("example")).to eq(@example_plan_path)
     end
 
-    it "should find executed.plan with result id" do
-      # clear result dir
-      FileUtils.rm_rf(File.expand_path("jkr/result", @env_dir))
-      FileUtils.mkdir_p(File.expand_path("jkr/result", @env_dir))
+    it "should find plan with specified search path" do
+      parent_plan_path = File.expand_path("parent.plan", FIXTURE_DIR)
 
+      expect(@finder.find_by_name("parent",
+                                  :plan_search_path => [FIXTURE_DIR])).to eq(parent_plan_path)
+    end
+
+    it "should find executed.plan with result id" do
       executed_plan_path = File.expand_path("jkr/result/00001executed/executed.plan", @env_dir)
 
       # make result dir and pseudo plan file
