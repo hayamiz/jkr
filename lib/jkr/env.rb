@@ -39,10 +39,6 @@ module Jkr
       end
     end
 
-    def next_plan
-      self.plans.first
-    end
-
     def plans
       Dir.glob("#{@jkr_plan_dir}#{File::SEPARATOR}*.plan").sort
     end
