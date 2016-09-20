@@ -16,13 +16,13 @@ describe Jkr::Trial do
       end
       @jkr_env = @jkr_env = Jkr::Env.new(@env_dir)
 
-      FileUtils.copy(File.expand_path("parent.plan", FIXTURE_DIR),
+      FileUtils.copy(fixture_path("parent.plan"),
                      @jkr_env.jkr_plan_dir)
-      FileUtils.copy(File.expand_path("child.plan", FIXTURE_DIR),
+      FileUtils.copy(fixture_path("child.plan"),
                      @jkr_env.jkr_plan_dir)
-      FileUtils.copy(File.expand_path("grandchild.plan", FIXTURE_DIR),
+      FileUtils.copy(fixture_path("grandchild.plan"),
                      @jkr_env.jkr_plan_dir)
-      FileUtils.copy(File.expand_path("foo-bar-script.rb", FIXTURE_DIR),
+      FileUtils.copy(fixture_path("foo-bar-script.rb"),
                      @jkr_env.jkr_script_dir)
 
       @plan = Jkr::Plan.create_by_name(@jkr_env, "grandchild")
@@ -46,7 +46,7 @@ describe Jkr::Trial do
   end
 
   it "should save extending plans and used scripts" do
-    env_dir = File.expand_path("use_extend_sample", FIXTURE_DIR)
+    env_dir = fixture_path("use_extend_sample")
     jkr_cmd = File.expand_path('../exe/jkr', __dir__)
 
     tmpdir = Dir.mktmpdir
@@ -71,7 +71,7 @@ end
 
 describe Jkr::TrialUtils do
   before(:each) do
-    env_dir = File.expand_path("sample_env", FIXTURE_DIR)
+    env_dir = fixture_path("sample_env")
     @jkr_env = Jkr::Env.new(env_dir)
     @plan = Jkr::Plan.create_by_name(@jkr_env, "example")
   end
