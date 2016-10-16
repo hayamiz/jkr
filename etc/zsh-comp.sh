@@ -78,6 +78,8 @@ __jkr_subcmds() {
     _values 'Jkr command' \
             'init[Init a Jkr environment]' \
             'execute[Execute a plan]' \
+            'resume[Resume in-progress execution]' \
             'list[List jkr plans]' \
-            'analyze[Analyze a result]'
+            'analyze[Analyze a result]' \
+            'query[Query interesting result]'
 }
