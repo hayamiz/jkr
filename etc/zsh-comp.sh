@@ -76,6 +76,7 @@ _jkr() {
 
 __jkr_subcmds() {
     _values 'Jkr command' \
+            'init[Init a Jkr environment]' \
             'execute[Execute a plan]' \
             'list[List jkr plans]' \
             'analyze[Analyze a result]'
