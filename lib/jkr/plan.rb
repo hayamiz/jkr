@@ -381,7 +381,7 @@ module Jkr
                             {'message'=>message})
       end
 
-      def sh(*args)
+      def sh_(*args)
         puts "sh: #{args.join(' ')}"
         return system(*args)
       end
@@ -394,7 +394,11 @@ module Jkr
         true
       end
 
+      # for backward compatibility
       alias :system_ :sh!
+
+      # raise Error on failure by default
+      alias :sh :sh!
 
       def su_sh(*args)
         puts "su_sh: #{args.join(' ')}"
