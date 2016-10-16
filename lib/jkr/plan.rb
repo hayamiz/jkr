@@ -100,6 +100,15 @@ module Jkr
         raise ArgumentError.new("Not valid result ID: #{ret_id}")
       end
 
+      resultset_num = sprintf "%05d", ret_id
+      dirs = Dir.glob(File.join(plan.jkr_env.jkr_result_dir, resultset_num)+"*")
+      if dirs.size == 0
+        raise RuntimeError.new("Resultset not found: #{ret_id}")
+      elsif dirs.size > 1
+        raise RuntimeError.new("Cannot identify result set directory")
+      end
+      plan.resultset_dir = dirs.first
+
       PlanLoader.load_plan(plan)
 
       plan

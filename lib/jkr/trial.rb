@@ -6,6 +6,8 @@ require 'jkr/utils'
 module Jkr
   class Trial
     attr_reader :params
+    attr_reader :result_dir
+
     def self.make_trials(resultset_dir, plan)
       var_combs = [{}]
       plan.vars.each do |key, vals|
@@ -25,8 +27,7 @@ module Jkr
       params_list = params_list * plan.routine_nr_run
 
       params_list.map do |params|
-        result_dir = Utils.reserve_next_dir(resultset_dir)
-        Trial.new(result_dir, plan, params)
+        Trial.new(resultset_dir, plan, params)
       end
     end
 
@@ -40,7 +41,7 @@ module Jkr
 
     def self.run(env, plan, delete_files_on_error = true)
       plan_suffix = File.basename(plan.file_path, ".plan")
-      plan_suffix += "_#{plan.short_desc}" if plan.short_desc
+      plan_suffix += "_#{plan.short_desc}" if plan.short_desc && plan.short_desc.size > 0
       resultset_dir = Utils.reserve_next_dir(env.jkr_result_dir, plan_suffix)
       plan.resultset_dir = resultset_dir
       FileUtils.mkdir_p(File.join(resultset_dir, "plan"))
@@ -79,22 +80,42 @@ module Jkr
           puts("== estimated execution time: #{pretty_time(plan.exec_time_estimate.call(plan))} ==")
           puts("")
         end
-
-        plan.do_prep()
-        trials.each do |trial|
-          trial.run
-        end
-        plan.do_cleanup()
       rescue Exception => err
         if delete_files_on_error
           FileUtils.rm_rf(resultset_dir)
         end
         raise err
       end
+
+      resume(env, plan)
     end
 
-    def initialize(result_dir, plan, params)
-      @result_dir = result_dir
+    def self.resume(env, plan)
+      trials = self.make_trials(plan.resultset_dir, plan)
+
+      plan.do_prep()
+      trials.each do |trial|
+        begin
+          trial.run
+        rescue Exception => err
+          failed_dir = File.expand_path("../_failed_" + File.basename(trial.result_dir),
+                                        trial.result_dir)
+          i = 1
+          while Dir.exists?(failed_dir)
+            failed_dir = File.expand_path("../_failed_" + File.basename(trial.result_dir) + "_#{i}",
+                                          trial.result_dir)
+            i += 1
+          end
+          FileUtils.mv(trial.result_dir, failed_dir)
+
+          raise err
+        end
+      end
+      plan.do_cleanup()
+    end
+
+    def initialize(resultset_dir, plan, params)
+      @resultset_dir = resultset_dir
       @plan = plan
       @params = params
     end
@@ -102,27 +123,50 @@ module Jkr
 
     def run()
       plan = @plan
-      File.open("#{@result_dir}/params.json", "w") do |f|
-        f.puts(@params.to_json)
+
+      # check duplicate execution
+      Dir.glob("#{@resultset_dir}/*").select do |path|
+        File.basename(path) =~ /^[0-9]{5}$/
+      end.each do |result_dir|
+        params = Marshal.load(File.open("#{result_dir}/params.msh"))
+
+        if params == @params
+          # already executed trial. skip.
+          return false
+        end
       end
 
-      # reset plan.metastore
-      plan.metastore.clear
+      # make result dir for this trial
+      @result_dir = Utils.reserve_next_dir(@resultset_dir)
 
-      # define utility functions for plan.routine object
-      Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
+      Dir.chdir(@result_dir) do
+        # save params
+        File.open("#{@result_dir}/params.msh", "w") do |f|
+          Marshal.dump(@params, f)
+        end
+        File.open("#{@result_dir}/params.json", "w") do |f|
+          f.puts(JSON.pretty_generate(@params))
+        end
 
-      @plan.metastore[:trial_start_time] = Time.now
-      @plan.do_routine(@plan, @params)
-      @plan.metastore[:trial_end_time] = Time.now
+        # reset plan.metastore
+        plan.metastore.clear
 
-      Jkr::TrialUtils.undef_routine_utils(@plan)
+        # define utility functions for plan.routine object
+        Jkr::TrialUtils.define_routine_utils(@result_dir, @plan, @params)
 
-      # save plan.metastore
-      Marshal.dump(@plan.metastore,
-                   File.open("#{@result_dir}/metastore.msh", "w"))
-      File.open("#{@result_dir}/metastore.json", "w") do |f|
-        f.puts(@plan.metastore.to_json)
+        @plan.metastore[:vars] = @plan.vars.keys
+        @plan.metastore[:trial_start_time] = Time.now
+        @plan.do_routine(@plan, @params)
+        @plan.metastore[:trial_end_time] = Time.now
+
+        Jkr::TrialUtils.undef_routine_utils(@plan)
+
+        # save plan.metastore
+        Marshal.dump(@plan.metastore,
+                     File.open("#{@result_dir}/metastore.msh", "w"))
+        File.open("#{@result_dir}/metastore.json", "w") do |f|
+          f.puts(JSON.pretty_generate(@plan.metastore))
+        end
       end
     end
   end

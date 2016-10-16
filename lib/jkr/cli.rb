@@ -83,6 +83,20 @@ module Jkr
       end
     end
 
+    desc "resume [<result> ...]", "Resume in-progress execution"
+    def resume(*result_ids)
+      @jkr_env = create_env()
+      cur_result_dir = Jkr::Env.find_result(Dir.pwd)
+      if cur_result_dir
+        result_ids.push(cur_result_dir.to_i)
+      end
+
+      result_ids.each do |rid|
+        plan = Plan.create_by_result_id(@jkr_env, rid)
+        Jkr::Trial.resume(@jkr_env, plan)
+      end
+    end
+
     desc "analyze [<result> ...]", "Run analysis script for executed results"
     def analyze(*result_ids)
       @jkr_env = create_env()
