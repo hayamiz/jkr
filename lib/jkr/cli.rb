@@ -98,6 +98,34 @@ module Jkr
       end
     end
 
+    desc "query <result>", "Query interesting result"
+    def query(result_id = nil)
+      @jkr_env = create_env()
+
+      if result_id == nil
+        # check if current dir is a result dir
+        cur_result_dir = Jkr::Env.find_result(Dir.pwd)
+        if cur_result_dir
+          result_id = cur_result_dir.to_i
+        else
+          raise ArgumentError.new("Result ID must be specified.")
+        end
+      end
+
+      result_dir = Dir.glob(sprintf("#{@jkr_env.jkr_result_dir}/%05d*", result_id.to_i)).first
+
+      Dir.glob("#{result_dir}/[0-9][0-9][0-9][0-9][0-9]/metastore.msh").sort.each do |m|
+        metastore = Marshal.load(File.open(m))
+        params = Marshal.load(File.open(File.expand_path("../params.msh", m)))
+
+        disp = metastore[:vars].map do |var|
+          "#{var}: #{params[var].inspect}"
+        end.join(", ")
+
+        puts "#{File.basename(File.dirname(m))}	| #{disp}"
+      end
+    end
+
     no_commands do
       def find_plan_file(plan_name)
         @jkr_env.plans.find do |plan_file_path|
