@@ -74,6 +74,8 @@ module Jkr
         params = plan.params.merge(plan.vars)
         plan.freeze
 
+        save_info(plan, :start_time => Time.now)
+
         # show estimated execution time if available
         if plan.exec_time_estimate
           puts("")
@@ -93,6 +95,8 @@ module Jkr
     def self.resume(env, plan)
       trials = self.make_trials(plan.resultset_dir, plan)
 
+      save_info(plan, :last_resume_time => Time.now)
+
       plan.do_prep()
       trials.each do |trial|
         begin
@@ -107,11 +111,30 @@ module Jkr
             i += 1
           end
           FileUtils.mv(trial.result_dir, failed_dir)
+          save_info(plan, :last_failure_time => Time.now)
 
           raise err
         end
       end
       plan.do_cleanup()
+
+      save_info(plan, :finish_time => Time.now)
+    end
+
+    def self.save_info(plan, data = {})
+      info_path = File.expand_path("INFO", plan.resultset_dir)
+      unless File.exists?(info_path)
+        File.open(info_path, "w") do |f|
+          f.puts(JSON.pretty_generate({}))
+        end
+      end
+
+      info_data = JSON.load(File.open(info_path))
+      info_data = info_data.merge(data)
+
+      File.open(info_path, "w") do |f|
+        f.puts(JSON.pretty_generate(info_data))
+      end
     end
 
     def initialize(resultset_dir, plan, params)
