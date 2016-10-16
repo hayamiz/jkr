@@ -93,7 +93,8 @@ module Jkr
       plan.file_path = finder.find_by_result_id(ret_id)
 
       plan.plan_search_path = [File.expand_path("../plan", plan.file_path)]
-      plan.script_search_path = [File.expand_path("../script", plan.file_path)]
+      plan.script_search_path = [File.expand_path("../script", plan.file_path),
+                                 plan.jkr_env.jkr_script_dir]
 
       unless plan.file_path
         raise ArgumentError.new("Not valid result ID: #{ret_id}")
@@ -185,7 +186,7 @@ module Jkr
         @plan
       end
 
-      def use_script(name)
+      def use_script(name, use = true)
         # find script file
         if name.is_a? Symbol
           name = name.to_s + ".rb"
@@ -206,10 +207,16 @@ module Jkr
 
         if path
           load path
-          @plan.used_scripts.push(path)
+          if use
+            @plan.used_scripts.push(path)
+          end
         else
           raise RuntimeError.new("Cannot use script: #{name}")
         end
+      end
+
+      def load_script(name)
+        use_script(name, false)
       end
 
       def extend(base_plan_name)
