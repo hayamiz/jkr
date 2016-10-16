@@ -43,17 +43,7 @@ module Jkr
 
     desc "list", "List executable plans"
     def list()
-      begin
-        if options[:directory]
-          @jkr_env = Jkr::Env.new(options[:directory])
-        else
-          @jkr_env = Jkr::Env.new(Jkr::Env.find(Dir.pwd))
-        end
-      rescue Errno::ENOENT
-        puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
-        puts(red("        Maybe you are in a wrong directory."))
-        exit(false)
-      end
+      @jkr_env = create_env()
 
       plans = Dir.glob("#{@jkr_env.jkr_plan_dir}/*.plan").map do |plan_file_path|
         plan = Jkr::Plan.create_by_name(@jkr_env, File.basename(plan_file_path, ".plan"))
@@ -78,7 +68,7 @@ module Jkr
 
     desc "execute <plan> [<plan> ...]", "Execute plans"
     def execute(*plan_names)
-      @jkr_env = Jkr::Env.new(options[:directory])
+      @jkr_env = create_env()
 
       if options[:debug]
         delete_files_on_error = false
@@ -93,9 +83,15 @@ module Jkr
       end
     end
 
-    desc "analyze <result> [<result> ...]", "Run analysis script for executed results"
+    desc "analyze [<result> ...]", "Run analysis script for executed results"
     def analyze(*result_ids)
-      @jkr_env = Jkr::Env.new(options[:directory])
+      @jkr_env = create_env()
+
+      # check if current dir is a result dir
+      cur_result_dir = Jkr::Env.find_result(Dir.pwd)
+      if cur_result_dir
+        result_ids.push(cur_result_dir.to_i)
+      end
 
       result_ids.each do |arg|
         Jkr::Analysis.analyze(@jkr_env, arg)
@@ -107,6 +103,21 @@ module Jkr
         @jkr_env.plans.find do |plan_file_path|
           File.basename(plan_file_path) == plan_name + ".plan"
         end
+      end
+
+      def create_env()
+        begin
+          if options[:directory]
+            return Jkr::Env.new(options[:directory])
+          else
+            return Jkr::Env.new(Jkr::Env.find(Dir.pwd))
+          end
+        rescue Errno::ENOENT
+          puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
+          puts(red("        Maybe you are in a wrong directory."))
+          exit(false)
+        end
+
       end
     end
   end
