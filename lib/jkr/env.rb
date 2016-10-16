@@ -34,5 +34,39 @@ module Jkr
         end
       end
     end
+
+    def self.valid_env_dir?(dir)
+      jkr_dir = File.expand_path("jkr", dir)
+      plan_dir = File.expand_path("plan", jkr_dir)
+      script_dir = File.expand_path("script", jkr_dir)
+      result_dir = File.expand_path("result", jkr_dir)
+
+      [jkr_dir, result_dir, plan_dir, script_dir].each do |dir_|
+        unless Dir.exists?(dir_)
+          return false
+        end
+      end
+
+      true
+    end
+
+    # Find Jkr env dir if 'dir' is under an valid Jkr environemnt directory.
+    def self.find(dir)
+      dir = File.expand_path("./", dir)
+      while true
+        if valid_env_dir?(dir)
+          return dir
+        end
+
+        parent_dir = File.expand_path("../", dir)
+        if parent_dir == dir
+          break
+        else
+          dir = parent_dir
+        end
+      end
+
+      nil
+    end
   end
 end

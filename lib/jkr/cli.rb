@@ -6,7 +6,7 @@ module Jkr
     include Term::ANSIColor
 
     class_option :debug, :type => :boolean
-    class_option :directory, :type => :string, :default => Dir.pwd, :aliases => :C
+    class_option :directory, :type => :string, :default => nil, :aliases => :C
 
     def self.exit_on_failure?
       true
@@ -44,7 +44,11 @@ module Jkr
     desc "list", "List executable plans"
     def list()
       begin
-        @jkr_env = Jkr::Env.new(options[:directory])
+        if options[:directory]
+          @jkr_env = Jkr::Env.new(options[:directory])
+        else
+          @jkr_env = Jkr::Env.new(Jkr::Env.find(Dir.pwd))
+        end
       rescue Errno::ENOENT
         puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
         puts(red("        Maybe you are in a wrong directory."))
