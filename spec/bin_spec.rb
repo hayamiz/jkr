@@ -19,7 +19,13 @@ describe Jkr::CLI do
   end
 
   def jkr(*argv)
-    system("#{@jkr_cmd}", *argv)
+    if argv.last.is_a? Hash
+      opts = argv.pop
+    else
+      opts = {}
+    end
+
+    system("#{@jkr_cmd}", *argv, opts)
   end
 
   it "should be executable" do
@@ -35,19 +41,19 @@ describe Jkr::CLI do
 
     describe "'list' subcommand" do
       it "should fail" do
-        expect(jkr("list")).to eq(false)
+        expect(jkr("list", :err => "/dev/null")).to eq(false)
       end
     end
 
     describe "'execute' subcommand" do
       it "should fail" do
-        expect(jkr("execute")).to eq(false)
+        expect(jkr("execute", :err => "/dev/null")).to eq(false)
       end
     end
 
     describe "'init' subcommand" do
       it "should create skeleton dirs" do
-        expect(system("#{@jkr_cmd} init")).to eq(true)
+        expect(jkr("init", :out => "/dev/null")).to eq(true)
 
         ['jkr', 'jkr/plan', 'jkr/result'].each do |dirname|
           expect(File.directory?(File.expand_path('jkr', @tmpdir))).to eq(true)
@@ -68,7 +74,7 @@ describe Jkr::CLI do
 
       describe "'list' subcommand" do
         it "should success" do
-          expect(system("#{@jkr_cmd} list")).to eq(true)
+          expect(jkr("list", :out => "/dev/null")).to eq(true)
         end
       end
 
