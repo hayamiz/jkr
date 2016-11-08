@@ -11,3 +11,4 @@
 /bin/rake2thor
 /bin/thor
 /pkg/*.gem
+/Gemfile.lock
