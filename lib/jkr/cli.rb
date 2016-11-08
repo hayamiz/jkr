@@ -86,9 +86,9 @@ module Jkr
     desc "resume [<result> ...]", "Resume in-progress execution"
     def resume(*result_ids)
       @jkr_env = create_env()
-      cur_result_dir = Jkr::Env.find_result(Dir.pwd)
-      if cur_result_dir
-        result_ids.push(cur_result_dir.to_i)
+      cur_result_id = Jkr::Env.find_result(Dir.pwd)
+      if cur_result_id
+        result_ids.push(cur_result_id)
       end
 
       result_ids.each do |rid|
@@ -102,9 +102,9 @@ module Jkr
       @jkr_env = create_env()
 
       # check if current dir is a result dir
-      cur_result_dir = Jkr::Env.find_result(Dir.pwd)
-      if cur_result_dir
-        result_ids.push(cur_result_dir.to_i)
+      cur_result_id = Jkr::Env.find_result(Dir.pwd)
+      if cur_result_id
+        result_ids.push(cur_result_id)
       end
 
       result_ids.each do |arg|
@@ -118,9 +118,9 @@ module Jkr
 
       if result_id == nil
         # check if current dir is a result dir
-        cur_result_dir = Jkr::Env.find_result(Dir.pwd)
-        if cur_result_dir
-          result_id = cur_result_dir.to_i
+        cur_result_id = Jkr::Env.find_result(Dir.pwd)
+        if cur_result_id
+          result_id = cur_result_id
         else
           raise ArgumentError.new("Result ID must be specified.")
         end
@@ -155,8 +155,8 @@ module Jkr
             return Jkr::Env.new(Jkr::Env.find(Dir.pwd))
           end
         rescue Errno::ENOENT
-          puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
-          puts(red("        Maybe you are in a wrong directory."))
+          $stderr.puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
+          $stderr.puts(red("        Maybe you are in a wrong directory."))
           exit(false)
         end
 

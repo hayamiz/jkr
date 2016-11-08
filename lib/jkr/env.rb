@@ -69,7 +69,7 @@ module Jkr
       nil
     end
 
-    # Find an executed Jkr result if 'dir' is under the result dir.
+    # Find an executed Jkr result if 'dir' is under the result dir, and return result id
     def self.find_result(dir)
       dir = File.expand_path("./", dir)
       while true
@@ -85,7 +85,7 @@ module Jkr
           if File.basename(gp_dir) == "jkr" &&
               File.basename(parent_dir) == "result" &&
               File.basename(dir) =~ /^[0-9]+/
-            return dir
+            return File.basename(dir).to_i
           end
         end
 
