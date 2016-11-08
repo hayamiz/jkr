@@ -1,0 +1,32 @@
+# -*- mode: ruby -*-
+
+title "example"
+description "this is an example."
+short_desc ""
+
+def_parameters do
+  constant :foo => 123
+  variable :trial_no => [1,2,3]
+end
+
+def_prep do |plan|
+end
+
+# This is optional routine for presenting estimated execution time for users.
+# Return estimated execution time in seconds.
+exec_time_estimate do |plan|
+  # 30 seconds for each trial
+  30 * plan.vars[:trial_no].size
+end
+
+def_routine do |plan, params|
+  # store various information with metastore
+  # metastore data is saved in "metastore.msh" with Marshal.dump for each trial
+  plan.metastore[:foo] = "bar"
+end
+
+def_cleanup do |plan|
+end
+
+def_analysis do |plan|
+end
