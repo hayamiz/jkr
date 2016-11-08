@@ -6,7 +6,7 @@ module Jkr
     include Term::ANSIColor
 
     class_option :debug, :type => :boolean
-    class_option :directory, :type => :string, :default => nil, :aliases => :C
+    class_option :directory, :type => :string, :default => Dir.pwd, :aliases => :C
 
     def self.exit_on_failure?
       true
