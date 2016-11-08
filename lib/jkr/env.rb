@@ -21,7 +21,7 @@ module Jkr
       @jkr_result_dir = File.join(@jkr_dir, RESULT_DIR)
       @jkr_script_dir = File.join(@jkr_dir, SCRIPT_DIR)
 
-      unless Dir.exists?(@jkr_dir)
+      unless Dir.exists?(@env_dir)
         raise Errno::ENOENT.new(@jkr_dir)
       end
 
@@ -69,7 +69,8 @@ module Jkr
       nil
     end
 
-    # Find an executed Jkr result if 'dir' is under the result dir, and return result id
+    # Find an executed Jkr result if 'dir' is under the result dir, and return result id.
+    # return nil otherwise.
     def self.find_result(dir)
       dir = File.expand_path("./", dir)
       while true
