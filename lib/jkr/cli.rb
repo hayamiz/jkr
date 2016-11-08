@@ -140,6 +140,31 @@ module Jkr
       end
     end
 
+    desc "init-shell", "Generate shell script to init shell completion"
+    option :bash, :type => :boolean, :default => false
+    option :zsh, :type => :boolean, :default => false
+    def init_shell()
+      gem_dir = File.expand_path("../../", __dir__)
+
+      if options[:bash]
+        puts <<EOS
+# bash completion support is not implemented yet.
+EOS
+      elsif options[:zsh]
+        puts <<EOS
+# Add a following line to ~/.zshrc
+#
+#     eval "$(jkr init-shell --zsh)"
+
+source #{File.expand_path("etc/zsh-comp.sh", gem_dir)}
+compdef _jkr jkr
+EOS
+      else
+        puts(red("[ERROR] Specify a shell type"))
+        exit(false)
+      end
+    end
+
     no_commands do
       def find_plan_file(plan_name)
         @jkr_env.plans.find do |plan_file_path|
