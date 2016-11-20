@@ -173,18 +173,14 @@ EOS
       end
 
       def create_env()
-        begin
-          if options[:directory]
-            return Jkr::Env.new(options[:directory])
-          else
-            return Jkr::Env.new(Jkr::Env.find(Dir.pwd))
-          end
-        rescue Errno::ENOENT
+        env_dir = Jkr::Env.find(options[:directory])
+        if env_dir
+          return Jkr::Env.new(env_dir)
+        else
           $stderr.puts(red("[ERROR] jkr dir not found at #{@options[:directory]}"))
           $stderr.puts(red("        Maybe you are in a wrong directory."))
           exit(false)
         end
-
       end
     end
   end
